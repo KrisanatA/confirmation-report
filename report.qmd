@@ -1,0 +1,117 @@
+---
+title: "Confirmation Report"
+author: "Krisanat Anukarnsakulchularp"
+format: html
+---
+
+```{r}
+#| message: false
+
+# library
+library(tidyverse)
+library(ggplot2)
+library(tidygraph)
+library(ggraph)
+library(sfnetworks)
+library(sf)
+```
+
+# Motivation
+
+## Ambulance
+
+### Dataset
+
+```{r}
+#| output: false
+#| eval: false
+
+address <- read_csv(here::here("data/ambulance/hospital_address.csv"))
+
+hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv"))
+
+patient <- read_csv(here::here("data/ambulance/patient_clean.csv")) |>
+  select(!c(...1, ...2))
+
+racf <- read_csv(here::here("data/ambulance/RACF_address.csv"))
+
+transfers <- read_csv(here::here("data/ambulance/transfers_all.csv")) |>
+  select(!...1)
+```
+
+### Network Summary Statistics
+
+Let's treat this data as a directed graph where a patient is being transferred from aged-care facility to hospital. For now, ignoring the spatial location.
+
+```{r}
+simple_net <- transfers |>
+  rename(from = sceneaddress,
+  to = hospitalname) |>
+  as_tbl_graph()
+```
+
+#### Degree distribution
+
+```{r}
+degree <- simple_net |>
+  mutate(in_degree = centrality_degree(weights = weight,
+                                       mode = "in"),
+         out_degree = centrality_degree(weights = weight,
+                                       mode = "out"))
+
+# out-degree distribution
+degree |>
+  filter(out_degree != 0) |>
+  as_tibble() |>
+  ggplot(aes(x = out_degree)) +
+  geom_histogram(binwidth = 15)
+
+# in-degree distribution
+degree |>
+  filter(in_degree != 0) |>
+  as_tibble() |>
+  ggplot(aes(x = in_degree)) +
+  geom_histogram(binwidth = 60)
+```
+
+Consider the 0.99 quantle for determine the extreme values.
+
+```{r}
+extreme <- degree |>
+  as_tibble() |>
+  summarise(
+    extreme_out = quantile(out_degree, prob = 0.99),
+    extreme_in = quantile(in_degree, prob = 0.99)
+  )
+
+extreme
+```
+
+We have `r extreme$extreme_out` as the extreme value for the out-degree and `r extreme$extreme_in` as the extreme value for the in-degree. 
+
+#### Closeness
+
+
+
+It raise a question, is this the same if we have subset the network base on multivariate information (attributes), time series, or spatial information.
+
+
+
+## Generalise things that are difficult
+
+
+## Network Exploration Framework
+
+Large-scale network exploration is essential in modern systems, where understanding the structure and dynamics is key to making effective decisions. Though most network analysis tends to look at the full picture, it in turn can then overlook interesting aspects within the network itself. This is similar to conditional the entire network on a subset of it. The typical workflow for this is data cleaning, subsetting/selection, visualise, modelling and repeated. 
+
+# Review current tools
+
+# Mapping out how to attack
+
+- small sample, e.g. supervisors data
+
+# Timeline
+
+- conferences
+
+- products

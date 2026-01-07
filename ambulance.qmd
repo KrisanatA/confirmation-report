@@ -1,0 +1,38 @@
+---
+title: "Exploratory network analysis of Ambulance transfers from aged care facilities to hospital"
+author: "Krisanat Anukarnsakulchularp"
+format: html
+---
+
+# Introduction
+
+
+# Data
+
+The ambulance transfer data was provided by Alfred Health. The dataset included the following aspect, spatial, temporal, and multivariate information on each transfers. The spatial cover the location of the aged care facilities and the hospital (destination) as latitude and longitude. While the temporal provide the date of the transfers cover the period between January 2018 to May 2022. For multivariate information, it covers hospitals, aged care facilities, patient-level details.
+
+## Multivariate information
+
+Hostpitals:
+
+- Name: The hospital name.
+
+- Emergency Capable: The TRUE/FALSE indicator of whether the hospital is capable of taking the emergency patient.
+
+- Address: The location of the hospital which included address, suburb, and postcode.
+
+- Category: The variable indicate whether the hospital is Private or Public.
+
+- Agency Type: The agency organisation of the hospital provided that the hospital is private own.
+
+
+Aged care facilities:
+
+- Name: The aged care facilities name.
+
+- Address: The location of the aged care facilities which included address, suburb, postcode, latitude, and longitude.
+
+
+Patients:
+
+
