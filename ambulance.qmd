@@ -4,35 +4,444 @@ author: "Krisanat Anukarnsakulchularp"
 format: html
 ---
 
+```{r}
+#| message: false
+
+# library
+library(tidyverse)
+library(ggplot2)
+library(wordcloud)
+library(tidygraph)
+library(ggraph)
+library(sfnetworks)
+library(sf)
+library(geosphere)
+library(tidytext)
+library(gghighlight)
+library(patchwork)
+
+theme_set(
+  theme_minimal()
+)
+```
+
+
 # Introduction
 
 
 # Data
 
-The ambulance transfer data was provided by Alfred Health. The dataset included the following aspect, spatial, temporal, and multivariate information on each transfers. The spatial cover the location of the aged care facilities and the hospital (destination) as latitude and longitude. While the temporal provide the date of the transfers cover the period between January 2018 to May 2022. For multivariate information, it covers hospitals, aged care facilities, patient-level details.
+```{r}
+address <- read_csv(here::here("data/ambulance/hospital_address.csv"))
 
-## Multivariate information
+hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv")) |> 
+  janitor::clean_names() |> 
+  rename(name = other_name) |> 
+  mutate(name = toupper(name))
 
-Hostpitals:
+patient <- read_csv(here::here("data/ambulance/patient_clean.csv")) |>
+  select(!c(...1, ...2))
 
-- Name: The hospital name.
+racf <- read_csv(here::here("data/ambulance/RACF_address.csv"))
 
-- Emergency Capable: The TRUE/FALSE indicator of whether the hospital is capable of taking the emergency patient.
+transfers <- read_csv(here::here("data/ambulance/transfers_all.csv")) |>
+  select(!...1)
 
-- Address: The location of the hospital which included address, suburb, and postcode.
+vic_map <- read_sf(here::here("data/map/LGA_2025_AUST_GDA2020/LGA_2025_AUST_GDA2020.shp")) |> 
+  filter(STE_NAME21 == "Victoria")
+```
 
-- Category: The variable indicate whether the hospital is Private or Public.
+```{r}
+# create graph object
+racf_location <- transfers |> 
+  select(sceneaddress, long_racf, lat_racf) |> 
+  distinct() |> 
+  rename(long = long_racf,
+         lat = lat_racf,
+         name = sceneaddress)
 
-- Agency Type: The agency organisation of the hospital provided that the hospital is private own.
+hospital_location <- transfers |> 
+  select(hospitalname, long_hosp, lat_hosp) |> 
+  distinct() |> 
+  rename(long = long_hosp,
+         lat = lat_hosp,
+         name = hospitalname)
+
+full_location <- bind_rows(racf_location, hospital_location)
+
+lowest_graph <- transfers |> 
+  rename(from = sceneaddress,
+         to = hospitalname) |> 
+  as_tbl_graph() |> 
+  left_join(full_location) |> 
+  mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
+
+highest_graph <- patient |> 
+  rename(from = sceneaddress,
+         to = hospitalname) |> 
+  as_tbl_graph() |> 
+  left_join(full_location) |> 
+  mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
+```
+
+The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the location of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
 
 
-Aged care facilities:
+# Research Question
 
-- Name: The aged care facilities name.
+## Efficiency
 
-- Address: The location of the aged care facilities which included address, suburb, postcode, latitude, and longitude.
+The efficiency of the ambulance transfer is critical in both the case of scheduled service and emergency transfer. In the scheduled service, the longer the transfer, the fewer ambulances available in the system, which can affect the number of ambulances available during an emergency state. For the emergency case, it directly influences the outcomes of the patient, especially the time-sensitive conditions such as trauma, cardiac emergencies, and strokes. The analysis of the ambulance transfer is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system.
+
+Measuring efficiency can be done in many ways; one of the proxies that can be used for estimating these is the distance from the aged care facilities to the hospital. The haversine distance will be used as a proxy for the efficiency of the transfer. It calculates the shortest distance between two points on a sphere using the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, and the distance between the aged care facility and hospital could be longer.
+
+```{r}
+patient_dist <- distHaversine(patient[,c("long_hosp","lat_hosp")], patient[,c("long_racf","lat_racf")]) |> 
+  as_tibble() |> 
+  bind_cols(patient) |> 
+  rename(distance = value) |> 
+  mutate(distance = distance,
+         routine = ifelse(routine == 1, "Scheduled", "Emergency"))
+```
+
+```{r}
+#| label: fig-distance-dist
+patient_dist |> 
+  ggplot(aes(x = log(distance + 1))) +
+  geom_histogram(bins = 45) +
+  facet_wrap(~routine, scales = "free_y") +
+  labs(y = "Count", x = "Distance (log-scale)")
+```
+
+From @fig-distance-dist, there seems to be zero distance transfer in the data, which might suggest either a data entry error or that the aged care facilities and hospital are next to each other. In the latter case, this might suggest that it may not need the ambulance to transfer the patient. After filtering the distance data to zero and manually going through them, it can be seen that the location of the aged care facility and hospital is, in fact, the same location. 
+
+There is also another observation made during this, which is a data error, for the `sceneaddress`, it corresponds to the RACF location, while `hospitalname` corresponds to the hospital location. There are sceneaddress that match the name in the hospital list but not in the racf list. Also, there are many transfers that the hospital name matched with the name in the RACF list.
 
 
-Patients:
+```{r}
+check <- patient_dist |> 
+  select(sceneaddress, locationname, dispatch, diagnosis, casenature, hospitalname, routine)
+
+check |> 
+  filter(locationname == "KILMORE RADIOLOGY - KILMORE HOSPITAL") |> 
+  knitr::kable()
+
+check |> 
+  filter(hospitalname %in% toupper(racf$formal_name)) |> 
+  knitr::kable()
+```
+
+??? Might need to fix these (visit later)
+
+Based on this information, the RACF, whose location is next to the hospital, because what it means is that the efficiency could be first improved through fewer transfers to the other hospital that is further away.
+
+```{r}
+racf_list <- racf |> 
+  mutate(name = paste(location_address, suburb, " ")) |> 
+  select(name, longitude, latitude)
+
+hosp_list <- patient |> 
+  distinct(hospitalname, long_hosp, lat_hosp)
+
+full_list <- expand_grid(racf_list, hosp_list)
+
+full_distance <- distHaversine(full_list[, c("longitude", "latitude")], full_list[, c("long_hosp", "lat_hosp")]) |> 
+  as_tibble() |> 
+  bind_cols(full_list) |> 
+  rename(distance = value)
+
+check_close <- full_distance |> 
+  filter(distance == 0) |> 
+  distinct(name) |> 
+  pull(name) |> 
+  trimws()
+```
+
+```{r}
+patient |> 
+  filter(sceneaddress %in% toupper(check_close)) |> 
+  count(dispatch, sort = TRUE) |> 
+  filter(n > quantile(n, probs = 0.95)) |> 
+  knitr::kable()
+```
+
+
+```{r}
+lowest_graph |>
+  activate(edges) |> 
+  mutate(from_name = .N()$name[from]) |>
+  filter(from_name %in% toupper(check_close)) |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map) +
+  geom_edge_link() +
+  geom_node_point(aes(color = category)) +
+  scale_color_manual(name = c("hospital", "racf"),
+                     values = c("grey", "blue"))
+```
+
+```{r}
+#| warning: false
+lowest_graph |> 
+  activate(edges) |> 
+  mutate(from_name = .N()$name[from]) |> 
+  filter(from_name %in% toupper(check_close)) |>
+  activate(nodes) |> 
+  filter(!node_is_isolated()) |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map) +
+  geom_node_point(aes(color = category)) +
+  gghighlight(category == "racf")
+```
+
+The question is why this RACF, which is right next to the hospital, has to transfer the patient to the hospital that is further away. From the summarising process, there is a repeated distance which might suggest that there are a common hospital that racf like to use or there might be a common symptom that the this is the closest hospital that can treat it. From the wordcloud, the highest frequency word that came up is "pain".
+
+
+```{r}
+common_dis_close_emer <- patient_dist |> 
+  filter(sceneaddress %in% toupper(check_close),
+         routine == "Emergency") |>
+  count(distance, sort = TRUE) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
+  pull(distance)
+
+text_close <- patient_dist |> 
+  filter(sceneaddress %in% toupper(check_close),
+         routine == "Emergency",
+         distance %in% common_dis_close_emer) |> 
+  unnest_tokens(word, diagnosis) |> 
+  count(distance, word) |> 
+  group_split(distance)
+```
+
+```{r}
+for (i in 1:length(text_close)){
+  print(unique(text_close[[i]]$distance))
+  wordcloud(text_close[[i]]$word, 
+            text_close[[i]]$n, 
+            max.words = 100, 
+            random.order = FALSE)
+}
+```
+
+```{r}
+#| warning: false
+racf_check <- patient_dist |> 
+  filter(sceneaddress %in% toupper(check_close),
+         routine == "Emergency",
+         distance %in% common_dis_close_emer,
+         between(distance, 90825, 90826)) |> 
+  select(sceneaddress, hospitalname) |> 
+  distinct()
+
+lowest_graph |> 
+  activate(edges) |> 
+  mutate(from_name = .N()$name[from]) |> 
+  filter(from_name == racf_check[[1]]) |> 
+  activate(nodes) |> 
+  filter(!node_is_isolated()) |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map) +
+  geom_node_point(aes(color = category)) +
+  geom_edge_link(aes(edge_alpha = weight)) +
+  gghighlight(name %in% c(racf_check[[1]], racf_check[[2]]))
+```
+
+```{r}
+patient |> 
+  filter(sceneaddress == racf_check[[1]]) |> 
+  unnest_tokens(word, diagnosis) |> 
+  count(word, sort = TRUE)
+```
+
+
+
+```{r}
+patient_dist |>
+  filter(distance != 0) |>
+  ggplot(aes(fill = routine, x = log(distance + 1))) +
+  geom_density(alpha = 0.3) +
+  labs(y = "Count", x = "Distance (log-scale)")
+```
+
+
+### High average distance
+
+```{r}
+high_avg_distance_check <- patient_dist |> 
+  filter(routine == "Emergency") |> 
+  group_by(sceneaddress) |> 
+  summarise(avg_distance = mean(distance)) |> 
+  filter(avg_distance > quantile(avg_distance, prob = 0.95)) |> 
+  pull(sceneaddress)
+```
+
+```{r}
+#| fig-width: 12
+#| warning: false
+check_high_avg_dis_plot <- lowest_graph |> 
+  mutate(check = factor(ifelse(name %in% high_avg_distance_check, "Yes", "No"), levels = c("Yes", "No"))) |> 
+  activate(edges) |> 
+  mutate(from_name = .N()$name[from]) |> 
+  filter(from_name %in% high_avg_distance_check) |> 
+  activate(nodes) |> 
+  filter(!node_is_isolated()) |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map) +
+  geom_edge_link() +
+  geom_node_point(alpha = 0.5) +
+  gghighlight(check == "Yes")
+
+hospital_location_plot <- lowest_graph |> 
+  left_join(hos_list,
+            by = c("name" = "name")) |> 
+  filter(category.x == "hospital") |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map) +
+  geom_node_point(aes(color = emergency_capable)) +
+  scale_color_manual(values = c("red", "green", "grey"))
+
+check_high_avg_dis_plot + hospital_location_plot
+```
+
+
+
+
+## Ambulance Transfer Demand
+
+```{r}
+no_transfers <- patient |>
+  count(year, month, day) |>
+  mutate(date = ymd(paste0(year, "-", month, "-", day)),
+         days = as.factor(wday(date, week_start = 1)),
+         months = as.factor(month(date)),
+         weekends = ifelse(days %in% c("Sat", "Sun"), 1, 0))
+```
+
+```{r}
+no_transfers |>
+  ggplot(aes(x = date, y = n)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(se = FALSE)
+```
+
+```{r}
+model <- lm(n ~ days + months, data = no_transfers)
+
+summary(model)
+```
+
+
+## Regional vs Melbourne
+
+```{r}
+hospital_suburb <- hospital_location |> 
+  mutate(classification = ifelse(between(lat, -38.5, -37.5) & 
+                             between(long, 144.5, 145.5), 
+                           "melbourne",
+                           "regional")) |> 
+  select(name, classification) |>
+  distinct()
+
+no_transfers_category <- patient |>
+  left_join(hospital_suburb,
+            by = c("hospitalname" = "name")) |> 
+  count(year, month, day, classification) |>
+  mutate(date = ymd(paste0(year, "-", month, "-", day)),
+         days = as.factor(wday(date, week_start = 1)),
+         months = as.factor(month(date)),
+         weekends = ifelse(days %in% c("Sat", "Sun"), 1, 0))
+
+no_transfers_category |> 
+  ggplot(aes(x = date, y = n)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Number of transfers overtime",
+       y = "Number of transfers",
+       x = "Date") +
+  facet_wrap(~classification,
+             scales = "free_y") +
+  theme(aspect.ratio = 1)
+```
+
+
+```{r}
+model_region <- lm(n ~ days + months + classification, data = no_transfers_category)
+
+summary(model_region)
+```
+
+What I really want to check is the impact of COVID-19 between the regional and Melbourne areas, since from the plot, it looks like there is less fluctuation in the regional area. Given the transfer, instead of just regional and Melbourne, one more category is needed, which is transfer from regional to Melbourne. My expectation is that there will be fewer transfers from regional to Melbourne because of the lockdowns.
+
+```{r}
+no_transfers_category_inter <- patient |> 
+  mutate(racf_area = ifelse(between(lat_racf, -38.5, -37.5) & 
+                             between(long_racf, 144.5, 145.5), 
+                           "melbourne",
+                           "regional"),
+         hosp_area = ifelse(between(lat_hosp, -38.5, -37.5) &
+                              between(long_hosp, 144.5, 145.5),
+                            "melbourne",
+                            "regional"),
+         classification = case_when(
+           racf_area == "melbourne" & hosp_area == "melbourne" ~ "melbourne",
+           racf_area == "regional" & hosp_area == "regional" ~ "regional",
+           racf_area == "melbourne" & hosp_area == "regional" ~ "melbourne-to-regional",
+           racf_area == "regional" & hosp_area == "melbourne" ~ "regional-to-melbourne"
+         )) |> 
+  count(year, month, day, classification) |> 
+  mutate(date = ymd(paste0(year, "-", month, "-", day)),
+         days = as.factor(wday(date, week_start = 1)),
+         months = as.factor(month(date)),
+         weekends = ifelse(days %in% c("Sat", "Sun"), 1, 0))
+
+no_transfers_category_inter |> 
+  ggplot(aes(x = date, y = n)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Number of transfers overtime",
+       y = "Number of transfers",
+       x = "Date") +
+  facet_wrap(~classification,
+             scales = "free_y") +
+  theme(aspect.ratio = 1)
+```
+
+```{r}
+no_transfers_category_inter <- patient |> 
+  mutate(racf_area = ifelse(between(lat_racf, -38.5, -37.5) & 
+                             between(long_racf, 144.5, 145.5), 
+                           "melbourne",
+                           "regional"),
+         hosp_area = ifelse(between(lat_hosp, -38.5, -37.5) &
+                              between(long_hosp, 144.5, 145.5),
+                            "melbourne",
+                            "regional"),
+         classification = case_when(
+           racf_area == "melbourne" & hosp_area == "melbourne" ~ "melbourne",
+           racf_area == "regional" & hosp_area == "regional" ~ "regional",
+           racf_area == "melbourne" & hosp_area == "regional" ~ "melbourne-to-regional",
+           racf_area == "regional" & hosp_area == "melbourne" ~ "regional-to-melbourne"
+         )) |> 
+  count(year, month, classification) |> 
+  mutate(date = ym(paste0(year, "-", month)),
+         months = as.factor(month(date)))
+
+no_transfers_category_inter |> 
+  ggplot(aes(x = date, y = n)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(se = FALSE) +
+  labs(title = "Number of transfers overtime",
+       y = "Number of transfers",
+       x = "Date") +
+  facet_wrap(~classification,
+             scales = "free_y") +
+  theme(aspect.ratio = 1)
+
+no_transfers_category_inter |> 
+  filter(classification == "regional-to-melbourne") |> 
+  ggplot(aes(x = date, y = n)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(se = FALSE)
+```
 
 
