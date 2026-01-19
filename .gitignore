@@ -52,3 +52,7 @@ rsconnect/
 data/ambulance
 
 .DS_Store
+
+*.html
+
+*_files/
