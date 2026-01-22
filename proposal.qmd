@@ -1,0 +1,23 @@
+---
+title: "Research Proposal"
+author: "Krisanat Anukarnsakulchularp"
+format: html
+---
+
+# Background
+
+Recently, exploring and analysing the large network structure has sparked more interestin in health field, particulary in emergency medical services and ambulance systems. For the ambulance system, the older people in residential aged care facilities relied heavily on the emergency service system.
+
+# Research Plan
+
+## Project 1: Exploring the Ambulance transfers from aged care facilities to hospital
+
+The efficiency of the ambulance transfer is critical in both the case of scheduled and emergency transfer to minimise the use of resources. In th scheduled service, the longer the transfer, the fewer ambulances are available in the systme, which can affect the number of ambulances available during an emergency state. For the emergency case, it directly influences the outcomes of the patient, especially the time-sensitive conditions such as trauma, cardiac emergencies, and strokes. The analysis of the ambulance transfer is there crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. Along with the efficiency, predicting the demand of the ambulace is also important since it allows ther services to plan accordingly in the different scenario.
+
+Instead of just evaluted the transfer pattern by network analysis, a simple data analysis can help reveal some other finding that are usually hidden in the complex network. For example, the transfer distance distribution.
+
+
+## Project 2: Infectious Disease Modelling
+
+
+## Project 3: Modelling tools
