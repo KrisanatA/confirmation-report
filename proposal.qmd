@@ -6,7 +6,9 @@ format: html
 
 # Background
 
-Recently, exploring and analysing the large network structure has sparked more interestin in health field, particulary in emergency medical services and ambulance systems. For the ambulance system, the older people in residential aged care facilities relied heavily on the emergency service system.
+Recently, exploring and analysing the large network structure data has spared more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. These systems have an important role in ensuring the transfer is in a timely and effective way, especially for the older population, where the delay could increase the health risk. Older individuals often require a continuous support, including 24-hour case, assistance on the daily task, and medical supervision. Thus, many reside in the residential aged care facilities (RACFs), which are specificly designed to provide these comprehensive care.
+
+RACFs frequently rely on the ambulance servieces to facilitates the transfers of an individual to the hospitals. It can either be an acute emergencies or planned/scheduled medical appointmetns. The increase in demands for these transfers are driven by the population ageing. These put incredibly pressure on the ambulance resources and highlights the need for efficient use.
 
 # Research Plan
 

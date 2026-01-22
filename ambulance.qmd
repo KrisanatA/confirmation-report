@@ -201,6 +201,8 @@ all_distance <- bind_cols(combi_racf_sf, combi_hosp_sf) |>
          distance = as.double(distance))
 ```
 
+Looking at the hospital multivariate.
+
 ```{r}
 #| code-summary: "RACF close to hospital"
 close <- all_distance |>
@@ -209,6 +211,8 @@ close <- all_distance |>
   pull(name) |>
   trimws()
 ```
+
+Regional vs Melbourne
 
 ```{r}
 #| code-summary: "Dispatch reason"
