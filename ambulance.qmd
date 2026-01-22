@@ -1,11 +1,14 @@
 ---
 title: "Exploratory network analysis of Ambulance transfers from aged care facilities to hospital"
 author: "Krisanat Anukarnsakulchularp"
-format: html
+format:
+  html:
+    code-fold: true
 ---
 
 ```{r}
 #| message: false
+#| warning: false
 
 # library
 library(tidyverse)
@@ -13,253 +16,486 @@ library(ggplot2)
 library(wordcloud)
 library(tidygraph)
 library(ggraph)
-library(sfnetworks)
-library(sf)
 library(geosphere)
 library(tidytext)
 library(gghighlight)
 library(patchwork)
+library(sf)
+library(units)
+library(ggthemes)
+library(animbook)
 
 theme_set(
   theme_minimal()
 )
-```
 
+options(scipen = 999)
+
+pal_colorblind <- colorblind_pal()(8)[2:8]
+```
 
 # Introduction
 
 
 # Data
 
+The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the location of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
+
+Need to mention IHT and more data cleaning (need to ask in next meeting???)
+
+There seems to be a data error, where the `sceneaddress`, which corresponds to the RACF location, matched the name in the hospital list, but not in the RACF list data, which is weird. Also, the `hospitalname`, which corresponds to the hospital location, matched with the name in the racf list.
+
 ```{r}
+#| message: false
+#| output: false
+#| code-summary: "Read data"
+
+# read data
 address <- read_csv(here::here("data/ambulance/hospital_address.csv"))
 
-hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv")) |> 
-  janitor::clean_names() |> 
-  rename(name = other_name) |> 
+hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv")) |>
+  janitor::clean_names() |>
+  rename(name = other_name) |>
   mutate(name = toupper(name))
 
 patient <- read_csv(here::here("data/ambulance/patient_clean.csv")) |>
-  select(!c(...1, ...2))
+  select(!c(...1, ...2)) |>
+  mutate(routine = ifelse(routine == 1, "Scheduled", "Emergency")) |>
+  filter(iht != 1)
 
 racf <- read_csv(here::here("data/ambulance/RACF_address.csv"))
 
 transfers <- read_csv(here::here("data/ambulance/transfers_all.csv")) |>
   select(!...1)
 
-vic_map <- read_sf(here::here("data/map/LGA_2025_AUST_GDA2020/LGA_2025_AUST_GDA2020.shp")) |> 
+vic_map <- read_sf(here::here("data/map/LGA_2025_AUST_GDA2020/LGA_2025_AUST_GDA2020.shp")) |>
   filter(STE_NAME21 == "Victoria")
 ```
 
 ```{r}
-# create graph object
-racf_location <- transfers |> 
-  select(sceneaddress, long_racf, lat_racf) |> 
-  distinct() |> 
+#| code-summary: "Address check"
+check <- patient |>
+  select(sceneaddress, locationname, dispatch, diagnosis, casenature, hospitalname, routine)
+
+check |>
+  filter(locationname == "KILMORE RADIOLOGY - KILMORE HOSPITAL") |>
+  knitr::kable()
+
+check |>
+  filter(hospitalname %in% toupper(racf$formal_name)) |>
+  knitr::kable()
+```
+
+```{r}
+#| code-summary: "Create graph object"
+
+racf_location <- transfers |>
+  select(sceneaddress, long_racf, lat_racf) |>
+  distinct() |>
   rename(long = long_racf,
          lat = lat_racf,
          name = sceneaddress)
 
-hospital_location <- transfers |> 
-  select(hospitalname, long_hosp, lat_hosp) |> 
-  distinct() |> 
+hospital_location <- transfers |>
+  select(hospitalname, long_hosp, lat_hosp) |>
+  distinct() |>
   rename(long = long_hosp,
          lat = lat_hosp,
          name = hospitalname)
 
 full_location <- bind_rows(racf_location, hospital_location)
 
-lowest_graph <- transfers |> 
+simple_graph <- transfers |>
   rename(from = sceneaddress,
-         to = hospitalname) |> 
-  as_tbl_graph() |> 
-  left_join(full_location) |> 
+         to = hospitalname) |>
+  as_tbl_graph() |>
+  left_join(full_location, by = "name") |>
   mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
 
-highest_graph <- patient |> 
+full_graph <- patient |>
   rename(from = sceneaddress,
-         to = hospitalname) |> 
-  as_tbl_graph() |> 
-  left_join(full_location) |> 
+         to = hospitalname) |>
+  as_tbl_graph() |>
+  left_join(full_location, by = "name") |>
   mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
 ```
-
-The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the location of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
 
 
 # Research Question
 
 ## Efficiency
 
-The efficiency of the ambulance transfer is critical in both the case of scheduled service and emergency transfer. In the scheduled service, the longer the transfer, the fewer ambulances available in the system, which can affect the number of ambulances available during an emergency state. For the emergency case, it directly influences the outcomes of the patient, especially the time-sensitive conditions such as trauma, cardiac emergencies, and strokes. The analysis of the ambulance transfer is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system.
+The efficiency of the ambulance transfer is critical in both the case of scheduled and emergency transfer to minimise the use of resources. In the scheduled service, the longer the transfer, the fewer ambulances are available in the system, which can affect the number of ambulances available during an emergency state. For the emergency case, it directly influences the outcomes of thepatient, especially the time-sensitive conditions such as trauma, cardiac emergencies, and strokes. The analysis of the ambulance transfer is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system.
 
-Measuring efficiency can be done in many ways; one of the proxies that can be used for estimating these is the distance from the aged care facilities to the hospital. The haversine distance will be used as a proxy for the efficiency of the transfer. It calculates the shortest distance between two points on a sphere using the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, and the distance between the aged care facility and hospital could be longer.
+Measuring efficiency can be done in many ways; one of the proxies that can be used for estimating these is the distance from the aged care facilities to the hospital. The haversine distance is one that takes into account the curvature of the Earth. However, given the area covered by the dataset, the Euclidean distance will be used instead. It calculates the shortest distance between two points using the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, which is not a straight line, and therefore, the distance between the RACF and the hospital will be longer.
 
 ```{r}
-patient_dist <- distHaversine(patient[,c("long_hosp","lat_hosp")], patient[,c("long_racf","lat_racf")]) |> 
-  as_tibble() |> 
-  bind_cols(patient) |> 
-  rename(distance = value) |> 
-  mutate(distance = distance,
-         routine = ifelse(routine == 1, "Scheduled", "Emergency"))
+#| code-summary: "Calculate distance"
+racf_sf <- patient |> 
+  select(-c(hospitalname, long_hosp, lat_hosp)) |> 
+  st_as_sf(coords = c("long_racf", "lat_racf"), crs = st_crs(4326)) |> 
+  rename(geometry_racf = geometry)
+
+hosp_sf <- patient |> 
+  select(hospitalname, long_hosp, lat_hosp) |> 
+  st_as_sf(coords = c("long_hosp", "lat_hosp"), crs = st_crs(4326)) |> 
+  rename(geometry_hosp = geometry)
+
+patient_dist <- bind_cols(racf_sf, hosp_sf) |> 
+  mutate(distance = st_distance(geometry_racf, geometry_hosp, by_element = TRUE),
+         distance = as.double(distance))
 ```
 
 ```{r}
-#| label: fig-distance-dist
-patient_dist |> 
-  ggplot(aes(x = log(distance + 1))) +
+#| code-summary: "Visualisation"
+#| label: fig-distance-dis
+patient_dist |>
+  ggplot(aes(x = distance + 1)) +
   geom_histogram(bins = 45) +
-  facet_wrap(~routine, scales = "free_y") +
+  facet_wrap(~routine, scales = "free_y", ncol = 1) +
+  scale_x_log10() +
   labs(y = "Count", x = "Distance (log-scale)")
 ```
 
-From @fig-distance-dist, there seems to be zero distance transfer in the data, which might suggest either a data entry error or that the aged care facilities and hospital are next to each other. In the latter case, this might suggest that it may not need the ambulance to transfer the patient. After filtering the distance data to zero and manually going through them, it can be seen that the location of the aged care facility and hospital is, in fact, the same location. 
-
-There is also another observation made during this, which is a data error, for the `sceneaddress`, it corresponds to the RACF location, while `hospitalname` corresponds to the hospital location. There are sceneaddress that match the name in the hospital list but not in the racf list. Also, there are many transfers that the hospital name matched with the name in the RACF list.
-
-
 ```{r}
-check <- patient_dist |> 
-  select(sceneaddress, locationname, dispatch, diagnosis, casenature, hospitalname, routine)
+#| echo: false
 
-check |> 
-  filter(locationname == "KILMORE RADIOLOGY - KILMORE HOSPITAL") |> 
-  knitr::kable()
-
-check |> 
-  filter(hospitalname %in% toupper(racf$formal_name)) |> 
-  knitr::kable()
+dist_dis <- patient_dist |>
+  filter(distance != 0) |>
+  pull(distance)
 ```
 
-??? Might need to fix these (visit later)
+From @fig-distance-dis, there seems to be zero distance transfer in the data, which might suggest either a data entry error or that the aged care facilities and hospital are next to each other. In the latter case, this might suggest that it may not need the ambulance to transfer the patient. After filtering the distance data to zero and manually going through them, it can be seen that the location of the aged care facility and hospital is, in fact, the same location. 
 
-Based on this information, the RACF, whose location is next to the hospital, because what it means is that the efficiency could be first improved through fewer transfers to the other hospital that is further away.
+In an emergency case, it is important that the transfer is done quickly. It means that most of the time, the RACF that is right next to the hospital should not have a patient transferred to another hospital. One thing that will need to be considered is that the hospital, which is right next to the RACF, might not be able to handle the emergency case. In this case, the patient should be transferred to another emergency-capable hospital. This information can be verified through the hospital data, which has a column indicating whether the hospital has an emergency department or not.
+
+Based on this information, the efficiency can be improved through fewer transfers to the other hospital that is further away, especially the RACF, whose location is right next to the hospital. To check this, the distance is calculated between the RACF and hospital for all the possible combinations to see which RACF is next to which hospital.
 
 ```{r}
-racf_list <- racf |> 
-  mutate(name = paste(location_address, suburb, " ")) |> 
+#| code-summary: "Calculate all combination distance"
+racf_list <- racf |>
+  mutate(name = paste(location_address, suburb, " ")) |>
   select(name, longitude, latitude)
 
-hosp_list <- patient |> 
-  distinct(hospitalname, long_hosp, lat_hosp)
+hosp_list <- hos_list |>
+  left_join(patient |> select(hospitalname, long_hosp, lat_hosp),
+            by = c("name" = "hospitalname")) |>
+  rename(hospitalname = name) |> 
+  distinct(hospitalname, long_hosp, lat_hosp) |> 
+  na.omit()
 
-full_list <- expand_grid(racf_list, hosp_list)
+combination_list <- expand_grid(racf_list, hosp_list)
 
-full_distance <- distHaversine(full_list[, c("longitude", "latitude")], full_list[, c("long_hosp", "lat_hosp")]) |> 
-  as_tibble() |> 
-  bind_cols(full_list) |> 
-  rename(distance = value)
+combi_racf_sf <- combination_list |> 
+  select(name, longitude, latitude) |>
+  st_as_sf(coords = c("longitude", "latitude"), crs = st_crs(4326)) |> 
+  rename(geometry_racf = geometry)
 
-check_close <- full_distance |> 
-  filter(distance == 0) |> 
-  distinct(name) |> 
-  pull(name) |> 
+combi_hosp_sf <- combination_list |> 
+  select(hospitalname, long_hosp, lat_hosp) |> 
+  st_as_sf(coords = c("long_hosp", "lat_hosp"), crs = st_crs(4326)) |> 
+  rename(geometry_hosp = geometry)
+
+all_distance <- bind_cols(combi_racf_sf, combi_hosp_sf) |> 
+  mutate(distance = st_distance(geometry_racf, geometry_hosp, by_element = TRUE),
+         distance = as.double(distance))
+```
+
+```{r}
+#| code-summary: "RACF close to hospital"
+close <- all_distance |>
+  filter(distance == 0) |>
+  distinct(name) |>
+  pull(name) |>
   trimws()
 ```
 
 ```{r}
-patient |> 
-  filter(sceneaddress %in% toupper(check_close)) |> 
-  count(dispatch, sort = TRUE) |> 
-  filter(n > quantile(n, probs = 0.95)) |> 
-  knitr::kable()
+#| code-summary: "Dispatch reason"
+patient_dist <- patient_dist |>
+  mutate(check = ifelse(sceneaddress %in% toupper(close), "Close", "Far"))
+
+patient_dist |>
+  filter(check == "Close") |>
+  count(dispatch, sort = TRUE) |>
+  st_drop_geometry() |>
+  filter(n > quantile(n, probs = 0.95)) |>
+  knitr::kable(caption = "RACF that is close to hospital")
+
+patient_dist |>
+  filter(check == "Far") |>
+  count(dispatch, sort = TRUE) |>
+  st_drop_geometry() |>
+  filter(n > quantile(n, probs = 0.95)) |>
+  knitr::kable(caption = "RACF that is far from hospital")
 ```
 
+```{r}
+#| code-summary: "Visualisation"
+#| label: fig-distance-dis-close
+patient_dist |>
+  ggplot(aes(x = distance + 1)) +
+  geom_histogram(bins = 45) +
+  facet_wrap(~check + routine, scales = "free_y", ncol = 2) +
+  scale_x_log10() +
+  labs(y = "Count", x = "Distance (log-scale)")
+```
+
+The expectation of the transfer distance for the RACF that is close to the hospital would be, on average, less than that of the other case. However, from @fig-distance-dis-close, it can be seen that, on average, the transfer distance for the RACF that is next to the hospital is higher. It actually raises more questions about why this is the case.
 
 ```{r}
-lowest_graph |>
-  activate(edges) |> 
+#| code-summary: "Visualisation"
+#| label: fig-racf-close-net
+simple_graph |>
+  activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
-  filter(from_name %in% toupper(check_close)) |> 
+  filter(from_name %in% toupper(close)) |>
+  activate(nodes) |>
+  filter(!node_is_isolated()) |>
   ggraph(x = long, y = lat) +
-  geom_sf(data = vic_map) +
+  geom_sf(data = vic_map, color = "white") +
   geom_edge_link() +
   geom_node_point(aes(color = category)) +
-  scale_color_manual(name = c("hospital", "racf"),
-                     values = c("grey", "blue"))
+  scale_color_manual(values = c("grey", "blue"))
 ```
 
 ```{r}
+#| code-summary: "Visualisation"
+#| label: fig-racf-close-point
 #| warning: false
-lowest_graph |> 
-  activate(edges) |> 
-  mutate(from_name = .N()$name[from]) |> 
-  filter(from_name %in% toupper(check_close)) |>
-  activate(nodes) |> 
-  filter(!node_is_isolated()) |> 
+simple_graph |>
+  filter(category == "racf") |>
   ggraph(x = long, y = lat) +
-  geom_sf(data = vic_map) +
+  geom_sf(data = vic_map, color = "white") +
+  geom_node_point(color = "red") +
+  gghighlight(name %in% toupper(close))
+```
+
+From @fig-racf-close-net, it can be observed that a lot of patients got transferred from the regional to the Melbourne area. Though visualising this can be hard on the map because the Melbourne area is smaller than the regional area, therefore, a lot of points inside the Melbourne area will get squished together, which makes it hard to visualise. One of the solutions is to group the hospitals within Melbourne together by their emergency capabilities.
+
+```{r}
+#| code-summary: "Grouping melbourne hospital"
+hospital_melbourne <- hospital_location |>
+  mutate(classification = ifelse(between(lat, -38.5, -37.5) &
+                                 between(long, 144.5, 145.5),
+                               "melbourne",
+                               "regional")) |>
+  filter(classification == "melbourne") |>
+  pull(name)
+
+hospital_emergency <- hos_list |>
+  filter(emergency_capable == "YES") |>
+  pull(name)
+
+simulate_location <- tibble::tibble(name = c("MELBOURNE HOSPITAL EMERGENCY",
+                                             "MELBOURNE HOSPITAL NON EMERGENCY"),
+                                    long = c(144.75, 145.25),
+                                    lat = c(-38, -38))
+
+full_location <- bind_rows(full_location, simulate_location)
+
+simple_group_graph <- transfers |>
+  mutate(hospitalname = case_when(
+                                  hospitalname %in% hospital_melbourne & 
+                                    hospitalname %in% hospital_emergency 
+                                  ~ "MELBOURNE HOSPITAL EMERGENCY",
+                                  hospitalname %in% hospital_melbourne & 
+                                    !(hospitalname %in% hospital_emergency) 
+                                  ~ "MELBOURNE HOSPITAL NON EMERGENCY",
+                                  .default = hospitalname
+                                  )) |>
+  rename(from = sceneaddress,
+         to = hospitalname) |>
+  as_tbl_graph() |>
+  left_join(full_location, by = "name") |>
+  mutate(category = case_when(
+                              name %in% transfers$sceneaddress ~ "RACF",
+                              name == "MELBOURNE HOSPITAL EMERGENCY" 
+                              ~ "Melbourne Emergency",
+                              name == "MELBOURNE HOSPITAL NON EMERGENCY" 
+                              ~ "Melbourne Non Emergency",
+                              .default = "Regional Hospital"
+                              ),
+         category = factor(category, 
+                           levels = c("Melbourne Emergency", 
+                                      "Melbourne Non Emergency", 
+                                      "Regional Hospital", 
+                                      "RACF"))
+         )
+```
+
+```{r}
+#| code-summary: "Visualisation"
+#| label: fig-group-close-net-spatial
+simple_group_graph |>
+  activate(edges) |>
+  mutate(from_name = .N()$name[from]) |>
+  filter(from_name %in% toupper(close)) |>
+  activate(nodes) |>
+  filter(!node_is_isolated()) |>
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map, color = "white") +
+  geom_edge_link() +
   geom_node_point(aes(color = category)) +
-  gghighlight(category == "racf")
-```
-
-The question is why this RACF, which is right next to the hospital, has to transfer the patient to the hospital that is further away. From the summarising process, there is a repeated distance which might suggest that there are a common hospital that racf like to use or there might be a common symptom that the this is the closest hospital that can treat it. From the wordcloud, the highest frequency word that came up is "pain".
-
-
-```{r}
-common_dis_close_emer <- patient_dist |> 
-  filter(sceneaddress %in% toupper(check_close),
-         routine == "Emergency") |>
-  count(distance, sort = TRUE) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  pull(distance)
-
-text_close <- patient_dist |> 
-  filter(sceneaddress %in% toupper(check_close),
-         routine == "Emergency",
-         distance %in% common_dis_close_emer) |> 
-  unnest_tokens(word, diagnosis) |> 
-  count(distance, word) |> 
-  group_split(distance)
+  theme(legend.position = "bottom") +
+  scale_color_manual(values = pal_colorblind[1:4])
 ```
 
 ```{r}
-for (i in 1:length(text_close)){
-  print(unique(text_close[[i]]$distance))
-  wordcloud(text_close[[i]]$word, 
-            text_close[[i]]$n, 
+#| code-summary: "Visualisation"
+#| label: fig-group-close-net-free
+simple_group_graph |>
+  activate(edges) |>
+  mutate(from_name = .N()$name[from]) |>
+  filter(from_name %in% toupper(close)) |>
+  activate(nodes) |>
+  filter(!node_is_isolated()) |>
+  ggraph(layout = "stress") +
+  geom_edge_link() +
+  geom_node_point(aes(color = category)) +
+  theme(legend.position = "bottom") +
+  scale_color_manual(values = pal_colorblind[1:4])
+```
+
+Will need to fix animbook first.
+
+```{r}
+#| eval: false
+patient_animbook <- patient |> 
+  filter(sceneaddress %in% toupper(close)) |> 
+  mutate(hospitalname = case_when(
+                                  hospitalname %in% hospital_melbourne & 
+                                    hospitalname %in% hospital_emergency 
+                                  ~ "Melbourne Emergency",
+                                  hospitalname %in% hospital_melbourne & 
+                                    !(hospitalname %in% hospital_emergency) 
+                                  ~ "Melbourne Non Emergency",
+                                  .default = "Regional Hospital"
+                                  ),
+         sceneaddress = "RACF") |> 
+  select(unique_id, sceneaddress, hospitalname, routine) |> 
+  pivot_longer(-c(unique_id, routine),
+               names_to = "location") |> 
+  select(-location) |> 
+  mutate(time = as.integer(ifelse(value == "RACF", 1, 2)),
+         unique_id = factor(unique_id),
+         value = factor(value, levels = c("RACF", "Melbourne Emergency", "Melbourne Non Emergency",
+                                          "Regional Hospital")))
+
+patient_cat <- anim_prep_cat(data = patient_animbook,
+                             id = unique_id,
+                             values = value,
+                             time = time,
+                             group = routine)
+
+p <- wallaby_plot(patient_cat)
+
+p2 <- anim_animate(p)
+
+p2
+```
+
+```{r}
+#| echo: false
+
+knitr::include_graphics(here::here("pictures/animbook-idea.jpeg"))
+```
+
+
+The question is why these RACFs, which are right next to the hospital, have to transfer the patient to the hospital that is further away. From the summarizing process, there is a repeated distance which might suggest that there is a common hospital that RACF likes to use, or there might be a common symptom that this is the closest hospital that can treat it.
+
+
+### Transfer Distance
+
+To further analyse the common reason for the patient transfer (RACF next to Hospital), the transfer distance will be grouped into the following;
+
+- Zero distance (next to the hospital)
+
+- Between 0 and 10km (Short-distance)
+
+- Between 10km and 50km (Medium-distance)
+
+- Above 50km (Long-distance)
+
+![](pictures/group-distance.png){width=60%}
+
+
+
+#### Dispatch Reason
+
+```{r}
+#| code-summary: "Grouping distance"
+patient_dist <- patient_dist |>
+  mutate(distance_cat = case_when(
+                          distance == 0 ~ "Zero",
+                          between(distance, 1, 10000) ~ "Short-distance",
+                          between(distance, 10000, 50000) ~ "Medium-distance",
+                          distance > 50 ~ "Long-distance"
+                                  ),
+         distance_cat = factor(distance_cat,
+                               levels = c("Zero", "Short-distance",
+                                          "Medium-distance", "Long-distance")))
+```
+
+```{r}
+#| code-summary: "Count the dispatch reason (RACF next to hospital)"
+text_close_dispatch <- patient_dist |> 
+  st_drop_geometry() |> 
+  filter(sceneaddress %in% toupper(close),
+         routine == "Emergency") |> 
+  count(distance_cat, dispatch) |> 
+  group_split(distance_cat)
+```
+
+```{r}
+#| code-summary: "Wordcloud"
+for (i in 1:length(text_close_dispatch)){
+  print(as.character(unique(text_close_dispatch[[i]]$distance_cat)))
+  wordcloud(text_close_dispatch[[i]]$dispatch, 
+            text_close_dispatch[[i]]$n, 
             max.words = 100, 
-            random.order = FALSE)
+            random.order = FALSE,
+            scale = c(1, 0.5))
 }
 ```
 
-```{r}
-#| warning: false
-racf_check <- patient_dist |> 
-  filter(sceneaddress %in% toupper(check_close),
-         routine == "Emergency",
-         distance %in% common_dis_close_emer,
-         between(distance, 90825, 90826)) |> 
-  select(sceneaddress, hospitalname) |> 
-  distinct()
 
-lowest_graph |> 
-  activate(edges) |> 
-  mutate(from_name = .N()$name[from]) |> 
-  filter(from_name == racf_check[[1]]) |> 
-  activate(nodes) |> 
-  filter(!node_is_isolated()) |> 
-  ggraph(x = long, y = lat) +
-  geom_sf(data = vic_map) +
-  geom_node_point(aes(color = category)) +
-  geom_edge_link(aes(edge_alpha = weight)) +
-  gghighlight(name %in% c(racf_check[[1]], racf_check[[2]]))
+#### Diagnosis Reason
+
+```{r}
+#| code-summary: "Count the diagnosis reason (RACF next to hospital)"
+text_close_diagnosis <- patient_dist |> 
+  st_drop_geometry() |> 
+  filter(sceneaddress %in% toupper(close),
+         routine == "Emergency") |> 
+  count(distance_cat, diagnosis) |> 
+  group_split(distance_cat)
 ```
 
 ```{r}
-patient |> 
-  filter(sceneaddress == racf_check[[1]]) |> 
-  unnest_tokens(word, diagnosis) |> 
-  count(word, sort = TRUE)
+#| code-summary: "Wordcloud"
+for (i in 1:length(text_close_diagnosis)){
+  print(as.character(unique(text_close_diagnosis[[i]]$distance_cat)))
+  wordcloud(text_close_diagnosis[[i]]$diagnosis, 
+            text_close_diagnosis[[i]]$n, 
+            max.words = 100, 
+            random.order = FALSE,
+            scale = c(1, 0.5))
+}
 ```
 
+From the wordcloud, the dispatch and diagnosis reasons seem to point to the same thing, which is that for the shorter distance, the reason seems to be about the injuries that require quick transfer, while the medium to long-distance suggests mental health issues. It is expected that the emergency transfer that requires quick attention should be done quickly.
 
 
 ```{r}
+#| code-summary: "Visualisation"
+#| label: fig-distance-dis-nozero
 patient_dist |>
   filter(distance != 0) |>
-  ggplot(aes(fill = routine, x = log(distance + 1))) +
-  geom_density(alpha = 0.3) +
+  ggplot(aes(x = distance + 1)) +
+  geom_histogram(bins = 45) +
+  scale_x_log10() +
+  facet_wrap(~routine, scale = "free_y", ncol = 1) +
   labs(y = "Count", x = "Distance (log-scale)")
 ```
 
@@ -267,6 +503,7 @@ patient_dist |>
 ### High average distance
 
 ```{r}
+#| code-summary: "Calculatate average distance"
 high_avg_distance_check <- patient_dist |> 
   filter(routine == "Emergency") |> 
   group_by(sceneaddress) |> 
@@ -276,9 +513,11 @@ high_avg_distance_check <- patient_dist |>
 ```
 
 ```{r}
+#| code-summary: "Visualisation"
+#| label: fig-high-avg-dist-net
 #| fig-width: 12
 #| warning: false
-check_high_avg_dis_plot <- lowest_graph |> 
+check_high_avg_dis_plot <- simple_graph |> 
   mutate(check = factor(ifelse(name %in% high_avg_distance_check, "Yes", "No"), levels = c("Yes", "No"))) |> 
   activate(edges) |> 
   mutate(from_name = .N()$name[from]) |> 
@@ -291,14 +530,15 @@ check_high_avg_dis_plot <- lowest_graph |>
   geom_node_point(alpha = 0.5) +
   gghighlight(check == "Yes")
 
-hospital_location_plot <- lowest_graph |> 
+hospital_location_plot <- simple_graph |> 
   left_join(hos_list,
             by = c("name" = "name")) |> 
   filter(category.x == "hospital") |> 
   ggraph(x = long, y = lat) +
   geom_sf(data = vic_map) +
   geom_node_point(aes(color = emergency_capable)) +
-  scale_color_manual(values = c("red", "green", "grey"))
+  scale_color_manual(values = c("red", "green", "grey")) +
+  theme(legend.position = "bottom")
 
 check_high_avg_dis_plot + hospital_location_plot
 ```
@@ -308,7 +548,10 @@ check_high_avg_dis_plot + hospital_location_plot
 
 ## Ambulance Transfer Demand
 
+Use MA instead of smooth.
+
 ```{r}
+#| code-summary: "Calculating number of daily transfers"
 no_transfers <- patient |>
   count(year, month, day) |>
   mutate(date = ymd(paste0(year, "-", month, "-", day)),
@@ -318,6 +561,7 @@ no_transfers <- patient |>
 ```
 
 ```{r}
+#| code-summary: "Visualisation"
 no_transfers |>
   ggplot(aes(x = date, y = n)) +
   geom_point(alpha = 0.2) +
@@ -325,7 +569,7 @@ no_transfers |>
 ```
 
 ```{r}
-model <- lm(n ~ days + months, data = no_transfers)
+model <- glm(n ~ days + months, data = no_transfers)
 
 summary(model)
 ```
@@ -365,7 +609,7 @@ no_transfers_category |>
 
 
 ```{r}
-model_region <- lm(n ~ days + months + classification, data = no_transfers_category)
+model_region <- glm(n ~ days + months + classification, data = no_transfers_category)
 
 summary(model_region)
 ```
@@ -443,5 +687,3 @@ no_transfers_category_inter |>
   geom_point(alpha = 0.2) +
   geom_smooth(se = FALSE)
 ```
-
-
