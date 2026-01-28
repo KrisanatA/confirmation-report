@@ -4,11 +4,38 @@ author: "Krisanat Anukarnsakulchularp"
 format: html
 ---
 
+Use the old research proposal and split it into 2 project, where first project is more exploration framework with applicaiton and second project is more idm with policy. Think more in general case of multivariate spatio-temporal data.
+
+Think about visualisation
+
+- jittered dot for the co-located RACF
+
+- animbook
+
+    - sankey
+
+    - map (https://www.nytimes.com/video/us/politics/100000010652139/inside-trumps-deportation-machine.html)
+
+Have a more concrete question
+
+Talk about EDA and IDM in background as well 
+
+
 # Background
 
-Recently, exploring and analysing the large network structure data has spared more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. These systems have an important role in ensuring the transfer is in a timely and effective way, especially for the older population, where the delay could increase the health risk. Older individuals often require a continuous support, including 24-hour case, assistance on the daily task, and medical supervision. Thus, many reside in the residential aged care facilities (RACFs), which are specificly designed to provide these comprehensive care.
+Recently, exploring and analysing large network structure data has sparked more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. This increase is largely due to an advancement in technology, such as the Global Positioning System (GPS), mobile devices, and remote sensing, which have significantly contribute ot the precision and volume of spatio-temporal data. This type of data capture information on both spatial and temporal context. The spatial component describe the location or spatial geometry, while the temporal component record time information such as timestamp or time interval.
 
-RACFs frequently rely on the ambulance servieces to facilitates the transfers of an individual to the hospitals. It can either be an acute emergencies or planned/scheduled medical appointmetns. The increase in demands for these transfers are driven by the population ageing. These put incredibly pressure on the ambulance resources and highlights the need for efficient use.
+The emergency medical services and ambulance systems have an important role in ensuring the patient transfer are perform effectively and in a timely maner. This is especially important for an older population, where the delay could lead to an increase in the health risk. Older individuals often require a continuous support, including 24-hour care, assistance on the daily task, and medical supervision. Thus, many reside in the residential aged care facilities (RACFs), which are specifically designed to provide these comprehensive care. RACFs frequently rely on the ambulance services to facilitates the transfers of an individual to the hospitals. It can either be an acute emergencies or planned/scheduled medical appointments. The increase in demands for these transfers are driven by the population ageing. It put an incredibly pressure on the ambulance resource and highlights the need for efficient planning and utilisation of the service.
+
+To gain an insight on the transfer patterns, the data exploration, along with network representations linking RACFs and hospitals, provide a powerful framework. Network-based representations the data are natirally perceived as relational and people often associate the flow and connections with it. However, most network research tends to be conducted homogeneously, focusing primarlily on the network topological properties while overlooking other important piece of information, for example, the association between variables. While network representation is a powerful tools, especially for the transfer data and overemphsise on network typology can lead to the neglect of the fundamental principles of data exploration. Where one encourages a freely investigation of the data to uncover pattern and unexpected result. Simple but informative analysis such as examining variable distribution, temporal trends, or even bivariate relationships, can reveal a lot of insights into transfer frequency, efficiency, and demand that are often get masked from the network structure alone. Integrating data exploration with network-based approaches therefore allows for better understanding of the RACF and hospital transfer.
+
+Studying how infectious disease spread throughout the network (link between RACFs and hospitals) is important because of the older population tend to face higher risk of mortality during the outbreaks. These patient transfers between facilities create ways for the disease to be transmitted across the systems, leading to rapid spread. Traditional compartmental infectious disease models assuming homogeneous or static structure do not adequately capture network that change overtime. In reality, ambulance transfer are highly dynamic where these connections between facilities can change in response to the demand, constraints, and even outbreak conditions. Understanding these transmission dynamics is therefore crucial for devising effective policies for stopping the widespread of the disease.
+
+Combining data exploration framework, which help undderstand how the transfer network changes over time, with dynamic modelling that assess how these chagne affect the disease spread is critical for identifying high-risk facilities, transfer connnections, and periods.
+
+
+
+
 
 # Research Plan
 

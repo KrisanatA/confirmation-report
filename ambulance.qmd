@@ -34,6 +34,19 @@ options(scipen = 999)
 pal_colorblind <- colorblind_pal()(8)[2:8]
 ```
 
+# Notes
+
+- Looking at the hospital multivariate
+
+- The transfer could be likely between the hospital organisation group
+
+- Everything need a reason
+
+- Normalise the number of transfer
+
+- More concrete question
+
+
 # Introduction
 
 
