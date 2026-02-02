@@ -33,6 +33,7 @@ library(ggraph)
 library(sfnetworks)
 library(sf)
 library(ggiraph)
+library(tsibble)
 
 theme_set(
   theme_minimal()
@@ -44,12 +45,18 @@ options(scipen = 999)
 ```{r}
 #| output: false
 
+# read data
 address <- read_csv(here::here("data/ambulance/hospital_address.csv"))
 
-hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv"))
+hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv")) |>
+  janitor::clean_names() |>
+  rename(name = other_name) |>
+  mutate(name = toupper(name))
 
 patient <- read_csv(here::here("data/ambulance/patient_clean.csv")) |>
-  select(!c(...1, ...2))
+  select(!c(...1, ...2)) |>
+  mutate(routine = ifelse(routine == 1, "Scheduled", "Emergency")) |>
+  filter(iht != 1)
 
 racf <- read_csv(here::here("data/ambulance/RACF_address.csv"))
 
@@ -79,17 +86,70 @@ As multivariate spatio-temporal network data became more accessible, understandi
 
 ## Data storage and cleaning
 
-Data cleaning is the first stage of a reliable analysis. Spatio-temporal network data present unique challendges, including inconsistent temporal records, duplicated records, and spatial inaccuracies arising from data processing. On top of that, the network structure, nodes, edges, and their attributes must be preserved during cleaning. This stage typically involves tools such as `dplyr` for manipulating the data, `tsibble` for validating the temporal inconsistency, `sf` for checking the coordinate inaccuracies, and `network`/`igraph` for keeping the network structure.
+Data cleaning is the first stage of a reliable analysis. Spatio-temporal data usually need to be check for inconsistency of the temporal records, duplicated records, and spatial inaccuracies. Now, adding the network structure on top of that, such as nodes, edges, and their attributes requires the network topology to be kept throughout the process. Typically, this stage involves tools such as `dplyr` for manipulating the data, `tsibble` for validating the temporal inconsistency, `sf` for checking the coordinate inaccuracies, and `igraph`/`network` for keeping the network structure.
 
-The `tidygraph` package provide a tidy API for graph/network manipulation, where network data are thought of as two tidy tables, one for node data and one for edge data. The main purpose of `tidygraph` is to provides a way to switch between the two tables and using the usual `dplyr` verbs for manipulating them while preserving the underlying network topology through the creation of an object call `tbl_graph`.  This work well for cleaning and transforming simple network attributes without repeatedly reconstructing the `tbl_graph` object.
+The `tidygraph` package provides a tidy API for graph and network manipulation, where network data are thought of as two tidy tables, one for node and one for edge data. In tidy data (@tidy-data), each variable have its own column, each observation have its own row, and each value have its own cell. These tables are then stored together within a `tbl_graph` object, which preserves the underlying network topology while allowing standard `dplyr` verbs to be applied. The interaction between node and edge tables are done through the use of special function, `activate()`, which allows user to switch between the two tables and apply `dplyr` operations such as `mutate()`, `group_by()`, and join operations.
 
-For spatio-temporal networks, the `sfnetwork` package, which is an extension to `tidygraph` allows for a spatial geometries to be incorporated directly within the `tbl_graph` object. It is useful for dealing with complicate geometry where the edge is not a straight line (e.g. road networks). However, for the temporal object provided by `tsibble` are not directly compatible with `tidygraph` objects. It mean, validating temporal consistency requires converting data back to a `tsibble` object or performing temporal check prior to the creation of the `tbl_graph`. 
-
-This however introduces an important limitation, where a common temporal operation such as filling missing obserations are performed outside the network context which will not preserve network topology. For example, if a node is missing in January 2020, how should the edges on the nodes be imputed. It highlights a key challend in cleaning spatio-temporal network data, where temporal consistency and network structure must be considered jointly.
-
-To address this limitation, this section purposes a new data object. ???
+There are two main functions for creating `tbl_graph` object, `as_tbl_graph()` and `tbl_graph()`. The first function `as_tbl_graph()` take in a different class of objects such as `data.frame`, `igraph`, and `network`, then turn it into a `tbl_graph` object. While `tbl_graph()` take in the two `data.frame` object, one for node and one for edge.
 
 ```{r}
+#| echo: false
+racf_nodes <- transfers |> 
+  distinct(sceneaddress, long_racf, lat_racf) |>
+  rename(name = sceneaddress,
+         longitude = long_racf,
+         latitude = lat_racf) |> 
+  mutate(type = "racf")
+
+hospital_nodes <- transfers |>
+  distinct(hospitalname, long_hosp, lat_hosp) |>
+  rename(name = hospitalname,
+         longitude = long_hosp,
+         latitude = lat_hosp) |>
+  mutate(type = "hospital")
+
+nodes <- bind_rows(racf_nodes, hospital_nodes)
+
+edges <- transfers |> 
+  rename(from = sceneaddress,
+         to = hospitalname)
+```
+
+```{r}
+as_tbl_graph(edges)
+
+tbl_graph(nodes, edges)
+```
+
+The difference between these two methods is that for the `as_tbl_graph()` function, it only need edges dataset which mean that all the multivariate information will only be on edge data and in the node data, it will only have name (location). With the `tbl_graph()` function, it can be explicitly set the multivariate in the node data which can come in handy when there is attributes on the node dataset.
+
+```{r}
+graph <- tbl_graph(nodes, edges)
+
+graph |>
+  activate(nodes) |>
+  mutate(degree = centrality_degree(weights = weight))
+
+graph |>
+  activate(edges) |>
+  mutate(centrality = centrality_edge_betweenness(weights = weight)) 
+```
+
+For spatial networks, the `sfnetwork` package extends `tidygraph` by allowing spatial geometries to be incorporated directly within the `tbl_graph` object. It is useful for dealing with complex geometry where edges are not straight-line connections, such as road or transport networks. The package also allows for the standard spatial operation within the `sf` package to be performed within the network context. For the temporal data structure provided by `tsibble` are not directly compatible with `tidygraph` objects. As a result, validating temporal consistency requires converting data back to a `tsibble` object or performing temporal check prior to the creation of `tbl_graph`.
+
+<!-- However, for the temporal data structure provided by `tsibble` are not directly compatible with `tidygraph` objects. As a result, validating temporal consistency requires converting data back to a `tsibble` object or performing temporal check prior to the creation of `tbl_graph`. It introduces an important limitation, where common operations, such as filling missing observations, are done outside the network context and therefore do not preserve the network topology. For example, if a node is missing in January 2020, how should the edges associated to that node be imputed. A sensible solution is to assume there is no edges exists during that period, which is reasonable in some cases but not in all the cases. It highlights a key challenge in cleaning spatio-temporal network data, where temporal consistency and network structure should be considered jointly. The challenges requires careful methodological decisions to ensure that both temporal attributes and relational structure of the network remain coherent throughout the cleaning process. -->
+
+
+## Data subsetting
+
+Data subsetting is used to extract a subset of data based on spatial, temporal and multivariate variables. It includes stratification by time periods, regions, or multivariate information, as well as filtering based on network attributes or variable information. It enables a deeper exploration of different sections of data for uncovering more insights.
+
+- randomly subsetting
+
+## Data visualisation
+
+```{r}
+#| echo: false
 racf_location <- transfers |>
   select(sceneaddress, long_racf, lat_racf) |>
   distinct() |>
@@ -113,14 +173,6 @@ simple_graph <- transfers |>
   left_join(full_location, by = "name") |>
   mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
 ```
-
-
-## Data subsetting
-
-Data subsetting is used to extract a subset of data based on spatial, temporal and multivariate variables. It includes stratification by time periods, regions, or multivariate information, as well as filtering based on network attributes or variable information. It enables a deeper exploration of different sections of data for uncovering more insights.
-
-
-## Data visualisation
 
 Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summarise alone. Network data is often viewed as a connections or flows between nodes/locations, and network based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requries the use of a graph layout algorithm, such as the Kamada-Kawai layout (@kk). Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these become more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations.
 
