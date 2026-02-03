@@ -1,11 +1,13 @@
 ---
-title: "Confirmation Report"
+title: "Comfirmation Report"
 author: "Krisanat Anukarnsakulchularp"
 format: html
+bibliography: report.bib
 ---
 
 ```{r}
 #| message: false
+#| echo: false
 
 # library
 library(tidyverse)
@@ -14,104 +16,318 @@ library(tidygraph)
 library(ggraph)
 library(sfnetworks)
 library(sf)
+library(ggiraph)
+library(tsibble)
+
+theme_set(
+  theme_minimal()
+)
+
+options(scipen = 999)
 ```
-
-# Motivation
-
-## Ambulance
-
-### Dataset
 
 ```{r}
 #| output: false
-#| eval: false
+#| echo: false
 
+# read data
 address <- read_csv(here::here("data/ambulance/hospital_address.csv"))
 
-hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv"))
+hos_list <- read_csv(here::here("data/ambulance/Hospital_list.csv")) |>
+  janitor::clean_names() |>
+  rename(name = other_name) |>
+  mutate(name = toupper(name))
 
 patient <- read_csv(here::here("data/ambulance/patient_clean.csv")) |>
-  select(!c(...1, ...2))
+  select(!c(...1, ...2)) |>
+  mutate(routine = ifelse(routine == 1, "Scheduled", "Emergency")) |>
+  filter(iht != 1)
 
 racf <- read_csv(here::here("data/ambulance/RACF_address.csv"))
 
 transfers <- read_csv(here::here("data/ambulance/transfers_all.csv")) |>
   select(!...1)
+
+vic_map <- read_sf(here::here("data/map/LGA_2025_AUST_GDA2020/LGA_2025_AUST_GDA2020.shp")) |>
+  filter(STE_NAME21 == "Victoria")
 ```
 
-### Network Summary Statistics
+# Background
 
-Let's treat this data as a directed graph where a patient is being transferred from aged-care facility to hospital. For now, ignoring the spatial location.
+Recently, exploring and analysing large network structure data has sparked more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. This increase is largely due to an advancement in technology, such as the Global Positioning System (GPS), mobile devices, and remote sensing, which have significantly contribute to the precision and volume of spatio-temporal data [@spatio-temporal]. This type of data captures information on both spatial and temporal context. The spatial component describes the location or spatial geometry, while the temporal component records time information such as a timestamp or time interval [@rao2012spatiotemporal].
+
+The emergency medical services and ambulance systems have an important role in ensuring that patient transfers are performed effectively and in a timely manner. This is especially important for an older population, where the delay could lead to an increase in health risk [@harmsen2015influence]. Older individuals often require continuous support, including 24-hour care, assistance with daily tasks, and medical supervision. Thus, many reside in the residential aged care facilities (RACFs), which are specifically designed to provide this comprehensive care [@kearney2006nearby]. RACFs frequently rely on the ambulance services to facilitate the transfer of an individual to the hospital. It can be an acute emergency or planned/scheduled medical appointments. The increase in demand for these transfers is driven by population ageing [@harris2018estimating]. It put incredible pressure on the ambulance resource and highlights the need for efficient planning and utilisation of the service.
+
+To gain insight into the transfer patterns, the data exploration, along with network representations linking RACFs and hospitals, provides a powerful framework. Network-based representations of the data are naturally perceived as relational, and people often associate the flow and connections with it. However, most network research tends to be conducted homogeneously, focusing primarily on the network topological properties while overlooking other important pieces of information, for example, the association between variables. While network representation is a powerful tool, especially for the transfers data, overemphasising network typology can lead to the neglect of the fundamental principles of data exploration. Which encourages a free investigation of the data to uncover patterns and unexpected results. Simple informative analyses, such as examining variable distribution, temporal trends, or even bivariate relationships, can reveal a lot of insights into transfer frequency, efficiency, and demand that are often masked by the network structure. Integrating data exploration with network-based approaches, therefore, allows for a better understanding of the RACF and hospital transfer.
+
+Studying how infectious diseases spread throughout the network (transfer between RACFs and hospitals) is important because the older population tend to face a higher risk of mortality during the outbreaks [@parohan2020risk]. These patient transfers between facilities create ways for the disease to be transmitted across the systems, leading to rapid spread. Traditional compartmental infectious disease models assuming homogeneous or static structure do not adequately capture networks that change over time. In reality, ambulance transfers are highly dynamic, where these connections between facilities can change in response to the demand, constraints, and even outbreak conditions. Understanding these transmission dynamics is therefore crucial for devising effective policies for stopping the spread of the disease. Combining a data exploration framework, which helps understand how the transfer network changes over time, with dynamic modelling that assesses how these changes affect the disease spread, is critical for identifying high-risk facilities, transfer connections, and periods.
+
+
+# Project 1a: A Multivariate Spatio-Temporal Network Data Exploration Framework 
+
+As multivariate spatio-temporal network data become more accessible and complex, understanding their structure and dynamics is key to effective decision-making. A major challenge with the analysis of large multivariate networks is the amount of information they contain, most of which is overlooked. By integrating exploratory data analysis (EDA) with network-based representations, the framework aims to support an examination of associations between variables, temporal changes, and structural differences within the network. Throughout this framework, a seamless integration of the following key processes is needed: data storage, cleaning, subsetting, visualisation, and visual inference. The following section, therefore, reviews existing tools that support these processes and discusses their limitations.
+
+
+## Data Storage and Cleaning
+
+Data cleaning is the first stage of a reliable analysis. Spatio-temporal data usually need to be checked for inconsistency of the temporal records, duplicated records, and spatial inaccuracies. Now, adding the network structure on top of that, such as nodes, edges, and their attributes, requires the network topology to be kept throughout the process. Typically, this stage involves tools such as `dplyr` [@dplyr] for manipulating the data, `tsibble` [@tsibble] for validating the temporal inconsistency, `sf` [@sf] for checking the coordinate inaccuracies, and `igraph`/`network` [@igraph, @network] for keeping the network structure.
+
+The `tidygraph` [@tidygraph] package provides a tidy API for graph and network manipulation, where network data are thought of as two tidy tables, one for node and one for edge data. In tidy data (@tidy-data), each variable has its own column, each observation has its own row, and each value has its own cell. These tables are then stored together within a `tbl_graph` object, which preserves the underlying network topology while allowing standard `dplyr` verbs to be applied. The interaction between node and edge tables is done through the use of a special function, `activate()`, which allows the user to switch between the two tables and apply `dplyr` operations such as `mutate()`, `group_by()`, and join operations.
+
+There are two main functions for creating `tbl_graph` object, `as_tbl_graph()` and `tbl_graph()`. The first function `as_tbl_graph()` takes in a different class of objects, such as `data.frame`, `igraph`, and `network`, then turns it into a `tbl_graph` object. While `tbl_graph()` takes in two `data.frame` objects, one for node and one for edge.
 
 ```{r}
-simple_net <- transfers |>
+#| echo: false
+racf_nodes <- transfers |> 
+  distinct(sceneaddress, long_racf, lat_racf) |>
+  rename(name = sceneaddress,
+         longitude = long_racf,
+         latitude = lat_racf) |> 
+  mutate(type = "racf")
+
+hospital_nodes <- transfers |>
+  distinct(hospitalname, long_hosp, lat_hosp) |>
+  rename(name = hospitalname,
+         longitude = long_hosp,
+         latitude = lat_hosp) |>
+  mutate(type = "hospital")
+
+nodes <- bind_rows(racf_nodes, hospital_nodes)
+
+edges <- transfers |> 
   rename(from = sceneaddress,
-  to = hospitalname) |>
-  as_tbl_graph()
+         to = hospitalname)
 ```
-
-#### Degree distribution
 
 ```{r}
-degree <- simple_net |>
-  mutate(in_degree = centrality_degree(weights = weight,
-                                       mode = "in"),
-         out_degree = centrality_degree(weights = weight,
-                                       mode = "out"))
+as_tbl_graph(edges)
 
-# out-degree distribution
-degree |>
-  filter(out_degree != 0) |>
-  as_tibble() |>
-  ggplot(aes(x = out_degree)) +
-  geom_histogram(binwidth = 15)
-
-# in-degree distribution
-degree |>
-  filter(in_degree != 0) |>
-  as_tibble() |>
-  ggplot(aes(x = in_degree)) +
-  geom_histogram(binwidth = 60)
+tbl_graph(nodes, edges)
 ```
 
-Consider the 0.99 quantle for determine the extreme values.
+The difference between these two methods is that for the `as_tbl_graph()` function, it only needs the edges dataset, which means that all the multivariate information will only be on edge data and in the node data, it will only have the name (location). For the `tbl_graph()` function, the node variable can be explicitly stated, which can come in handy when there are attributes on the node dataset.
 
 ```{r}
-extreme <- degree |>
-  as_tibble() |>
-  summarise(
-    extreme_out = quantile(out_degree, prob = 0.99),
-    extreme_in = quantile(in_degree, prob = 0.99)
-  )
+graph <- tbl_graph(nodes, edges)
 
-extreme
+graph |>
+  activate(nodes) |>
+  mutate(degree = centrality_degree(weights = weight))
+
+graph |>
+  activate(edges) |>
+  mutate(centrality = centrality_edge_betweenness(weights = weight)) 
 ```
 
-We have `r extreme$extreme_out` as the extreme value for the out-degree and `r extreme$extreme_in` as the extreme value for the in-degree. 
+For spatial networks, the `sfnetworks` package [@sfnetworks] extends `tidygraph` by allowing spatial geometries to be incorporated directly within the `tbl_graph` object. It is useful for dealing with complex geometry where edges are not straight-line connections, such as road or transport networks. The package also allows for the standard spatial operation within the `sf` package to be performed within the network context. For the temporal data structure provided by `tsibble` are not directly compatible with `tidygraph` objects. As a result, validating temporal consistency requires converting data back to a `tsibble` object or performing a temporal check prior to the creation of `tbl_graph`.
 
-#### Closeness
-
-
-
-It raise a question, is this the same if we have subset the network base on multivariate information (attributes), time series, or spatial information.
+<!-- However, the temporal data structure provided by `tsibble` is not directly compatible with `tidygraph` objects. As a result, validating temporal consistency requires converting data back to a `tsibble` object or performing a temporal check prior to the creation of `tbl_graph`. It introduces an important limitation, where common operations of filling missing observations are done outside the network context and therefore do not preserve the network topology. For example, if a node is missing in January 2020, how should the edges associated with that node be imputed? A sensible solution is to assume no edges exist during that period, which is reasonable in some cases but not in all cases. It highlights a key challenge in cleaning spatio-temporal network data, where temporal consistency and network structure should be considered jointly. The challenges require careful methodological decisions to ensure that both temporal attributes and the relational structure of the network remain coherent throughout the cleaning process. -->
 
 
+## Data subsetting
 
-## Generalise things that are difficult
+Data subsetting is used to extract a subset of spatio-temporal network data based on spatial, temporal, and multivariate variables. This includes grouping data by time periods or regions, as well as filtering based on variable values and network characteristics (e.g., in-degree). In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
+
+```{r}
+#| echo: false
+nodes_example <- tibble(name = c(1, 2, 3, 4, 5),
+                        x = c(1, 1.5, 2, 2, 3),
+                        y = c(2, 1, 2, 3, 1))
+
+edges_example <- tibble(from = c(1, 1, 2, 3, 3),
+                        to = c(2, 3, 3, 4, 5))
+
+graph_example <- tbl_graph(nodes = nodes_example, edges = edges_example, directed = FALSE)
+```
+
+```{r}
+#| label: fig-node-filter
+#| layout-ncol: 3
+#| echo: false
+#| fig-cap: "Node filtering"
+#| fig-subcap:
+#|  - "Full network"
+#|  - "Node to be remove"
+#|  - "Filtered network"
+
+graph_example |> 
+  ggraph(x = x, y = y) + 
+  geom_edge_link() +
+  geom_node_point(size = 10, color = "blue")
+
+graph_example |> 
+  mutate(check = as.factor(ifelse(name == "5", 1, 0))) |> 
+  ggraph(x = x, y = y) +
+  geom_edge_link() +
+  geom_node_point(aes(color = check), size = 10) +
+  scale_color_manual(values = c("blue", "red")) +
+  theme(legend.position = "none")
+  
+graph_example |> 
+  mutate(check = as.factor(ifelse(name == "5", 1, 0))) |> 
+  activate(edges) |> 
+  mutate(check = as.factor(ifelse(to == "5", 1, 0))) |> 
+  ggraph(x = x, y = y) +
+  geom_edge_link(aes(color = check)) +
+  geom_node_point(aes(color = check), size = 10) +
+  scale_color_manual(values = c("blue", "white")) +
+  scale_edge_color_manual(values = c("black", "white")) +
+  theme(legend.position = "none")
+```
+
+```{r}
+#| label: fig-edge-filter
+#| layout-ncol: 3
+#| echo: false
+#| fig-cap: "Edge filtering"
+#| fig-subcap:
+#|  - "Full network"
+#|  - "Edges to be remove"
+#|  - "Filtered network"
+
+graph_example |> 
+  ggraph(x = x, y = y) + 
+  geom_edge_link(color = "blue") +
+  geom_node_point(size = 10)
+
+graph_example |> 
+  activate(edges) |> 
+  mutate(check = as.factor(ifelse(to %in% c("4", "5"), 1, 0))) |> 
+  ggraph(x = x, y = y) +
+  geom_edge_link(aes(color = check)) +
+  geom_node_point(size = 10) +
+  scale_color_manual(values = c("blue", "red")) +
+  scale_edge_color_manual(values = c("blue", "red")) +
+  theme(legend.position = "none")
+
+graph_example |> 
+  activate(edges) |> 
+  mutate(check = as.factor(ifelse(to %in% c("4", "5"), 1, 0))) |> 
+  filter(check != 1) |> 
+  ggraph(x = x, y = y) +
+  geom_edge_link(color = "blue") +
+  geom_node_point(size = 10) +
+  theme(legend.position = "none")
+```
+
+```{r}
+graph |>
+  activate(nodes) |> 
+  filter(type == "racf")
+
+graph |> 
+  activate(edges) |> 
+  select(-c(long_hosp:lat_racf)) |> 
+  filter(weight > 100)
+```
+
+<!-- Data sampling -->
 
 
-## Network Exploration Framework
+## Data visualisation
 
-Large-scale network exploration is essential in modern systems, where understanding the structure and dynamics is key to making effective decisions. Though most network analysis tends to look at the full picture, it in turn can then overlook interesting aspects within the network itself. This is similar to conditional the entire network on a subset of it. The typical workflow for this is data cleaning, subsetting/selection, visualise, modelling and repeated. 
+```{r}
+#| echo: false
+racf_location <- transfers |>
+  select(sceneaddress, long_racf, lat_racf) |>
+  distinct() |>
+  rename(long = long_racf,
+         lat = lat_racf,
+         name = sceneaddress)
 
-# Review current tools
+hospital_location <- transfers |>
+  select(hospitalname, long_hosp, lat_hosp) |>
+  distinct() |>
+  rename(long = long_hosp,
+         lat = lat_hosp,
+         name = hospitalname)
 
-# Mapping out how to attack
+full_location <- bind_rows(racf_location, hospital_location)
 
-- small sample, e.g. supervisors data
+simple_graph <- transfers |>
+  rename(from = sceneaddress,
+         to = hospitalname) |>
+  as_tbl_graph() |>
+  left_join(full_location, by = "name") |>
+  mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
+```
 
-# Timeline
+Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summaries alone. Network data is often viewed as connections or flows between nodes/locations, and network-based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requires the use of a graph layout algorithm, such as the Kamada-Kawai layout (@kk). Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these becomes more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations.
 
-- conferences
+```{r}
+#| label: fig-static-network
+#| fig-cap: "An ambulance transfers network in Victoria between residential aged care facilities and hospitals."
+#| code-summary: "Visualisation"
 
-- products
+simple_graph |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map, color = "white") +
+  geom_edge_link(alpha = 0.1) +
+  geom_node_point(aes(color = category))
+```
+
+Visualising high-dimensional network data can be challenging, especially through a static visualisation alone. The current tool for network visualisation in R is the `ggraph` package [@ggraph], which extends the `ggplot2` package [@ggplot2] to support relational data structures such as networks, graphs, and trees. The `ggraph` package is effective at visualising static networks, offering a range of layout algorithms for placing the node locations while keeping the same familiar `ggplot2` syntax. The support for interactive network visualisation with `ggraph` is currently limited. The reason static network visualisation is hard is that the amount of information that can be mapped to the visualisation is limited within a single figure. As shown in @fig-static-network, just a simple network representation can already become cluttered quickly. Answering detailed questions such as the number of transfers between a specific RACF and Hospital, or the name of a particular RACF, is difficult using static visualisation alone. Interactive visualisation help with these limitation by layering additional information onto the visualisation, allowing for further exploration.
+
+```{r}
+#| label: fig-interact-node
+#| fig-cap: "An ambulance transfers network in Victoria between residential aged care facilities and hospitals with an interactive node."
+#| code-summary: "Visualisation"
+interactive_vis_node <- simple_graph |> 
+  mutate(name = str_remove(name, "'")) |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map, color = "white") +
+  geom_edge_link(alpha = 0.1) +
+  geom_point_interactive(aes(x = x, 
+                             y = y,
+                             color = category,
+                             tooltip = name,
+                             data_id = name))
+
+girafe(ggobj = interactive_vis_node,
+       options = list(
+         opts_hover(css = "fill:lightblue;stroke:grey;stroke-width:0.5px"),
+         opts_zoom(min = 0.5, max = 3)
+       ))
+```
+
+```{r}
+#| label: fig-interact-edge
+#| fig-cap: "An ambulance transfers network in Victoria between residential aged care facilities and hospitals with an interactive edge."
+#| code-summary: "Visualisation"
+
+interactive_vis_edge <- simple_graph |> 
+  ggraph(x = long, y = lat) +
+  geom_sf(data = vic_map, color = "white") +
+  geom_node_point(aes(color = category)) +
+  geom_segment_interactive(
+    data = simple_graph |> activate(edges) |> as_tibble() |> mutate(id = row_number()),
+    alpha = 0.2,
+    aes(x = long_racf,
+        y = lat_racf,
+        xend = long_hosp,
+        yend = lat_hosp,
+        tooltip = weight,
+        data_id = id))
+  
+
+girafe(ggobj = interactive_vis_edge,
+       options = list(
+         opts_hover(css = "fill:lightblue;stroke:grey;stroke-width:0.5px"),
+         opts_zoom(min = 0.5, max = 3)
+       ))
+```
+
+The `ggiraph` package [@ggiraph] provides an interactive element to the visualisation through the `ggplot2` extension. Creating interactive network visualisations, therefore, typically requires combining `ggraph` for layout construction with `ggiraph` for interactivity. Getting this to work together requires an insight into how `ggraph` works, which is not a seamless implementation. For example, `ggraph` provides `geom_node_*` and `geom_edge_*` functions for nodes and edges geometry, respectively, but these do not natively support interactivity. To make nodes interactive, `geom_point_interactive()` need to be use instead of `geom_node_point()`. Making edges interactive is more complex as it requires the use of `geom_segment_interactive()` and mapping the start and end coordinates (`x`, `y`, `xend`, `yend`) for each edge. By that point, if both node and edge need interactivity, then `ggraph` is not needed, and instead the node and edge can be treated as a different dataset and implement geom_point and geom_segment for drawing the node and edge.
+
+
+## Visual Inference
+
+
+
+# Project 1b: Exploratory Analysis of Ambulance Demand and Efficiency with a Generalised Ambulance Model
+
+
+
+# Project 2: Dynamics Infectious Disease Modelling of Ambulance Network Changes
+
+
