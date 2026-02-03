@@ -53,6 +53,10 @@ data/ambulance
 
 .DS_Store
 
-*.html
+ambulance.html
 
-*_files/
+ambulance_files/
+
+proposal.html
+
+proposal_files/
