@@ -63,12 +63,14 @@ To gain insight into the transfer patterns, the data exploration, along with net
 Studying how infectious diseases spread throughout the network (transfer between RACFs and hospitals) is important because the older population tend to face a higher risk of mortality during the outbreaks [@parohan2020risk]. These patient transfers between facilities create ways for the disease to be transmitted across the systems, leading to rapid spread. Traditional compartmental infectious disease models assuming homogeneous or static structure do not adequately capture networks that change over time. In reality, ambulance transfers are highly dynamic, where these connections between facilities can change in response to the demand, constraints, and even outbreak conditions. Understanding these transmission dynamics is therefore crucial for devising effective policies for stopping the spread of the disease. Combining a data exploration framework, which helps understand how the transfer network changes over time, with dynamic modelling that assesses how these changes affect the disease spread, is critical for identifying high-risk facilities, transfer connections, and periods.
 
 
-# Project 1a: A Multivariate Spatio-Temporal Network Data Exploration Framework 
+# Project 1: Developing Infrastructure for Exploratory Analysis of Multivariate Spatio-temporal Network
+
+## Part A: A Multivariate Spatio-Temporal Network Data Exploration Framewok
 
 As multivariate spatio-temporal network data become more accessible and complex, understanding their structure and dynamics is key to effective decision-making. A major challenge with the analysis of large multivariate networks is the amount of information they contain, most of which is overlooked. By integrating exploratory data analysis (EDA) with network-based representations, the framework aims to support an examination of associations between variables, temporal changes, and structural differences within the network. Throughout this framework, a seamless integration of the following key processes is needed: data storage, cleaning, subsetting, visualisation, and visual inference. The following section, therefore, reviews existing tools that support these processes and discusses their limitations.
 
 
-## Data Storage and Cleaning
+### Data Storage and Cleaning
 
 Data cleaning is the first stage of a reliable analysis. Spatio-temporal data usually need to be checked for inconsistency of the temporal records, duplicated records, and spatial inaccuracies. Now, adding the network structure on top of that, such as nodes, edges, and their attributes, requires the network topology to be kept throughout the process. Typically, this stage involves tools such as `dplyr` [@dplyr] for manipulating the data, `tsibble` [@tsibble] for validating the temporal inconsistency, `sf` [@sf] for checking the coordinate inaccuracies, and `igraph`/`network` [@igraph, @network] for keeping the network structure.
 
@@ -124,7 +126,7 @@ For spatial networks, the `sfnetworks` package [@sfnetworks] extends `tidygraph`
 <!-- However, the temporal data structure provided by `tsibble` is not directly compatible with `tidygraph` objects. As a result, validating temporal consistency requires converting data back to a `tsibble` object or performing a temporal check prior to the creation of `tbl_graph`. It introduces an important limitation, where common operations of filling missing observations are done outside the network context and therefore do not preserve the network topology. For example, if a node is missing in January 2020, how should the edges associated with that node be imputed? A sensible solution is to assume no edges exist during that period, which is reasonable in some cases but not in all cases. It highlights a key challenge in cleaning spatio-temporal network data, where temporal consistency and network structure should be considered jointly. The challenges require careful methodological decisions to ensure that both temporal attributes and the relational structure of the network remain coherent throughout the cleaning process. -->
 
 
-## Data subsetting
+### Data subsetting
 
 Data subsetting is used to extract a subset of spatio-temporal network data based on spatial, temporal, and multivariate variables. This includes grouping data by time periods or regions, as well as filtering based on variable values and network characteristics (e.g., in-degree). In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
 
@@ -222,7 +224,7 @@ graph |>
 ```
 
 
-### Sampling method
+#### Sampling method
 
 Another important aspect of subsetting is understanding how sampling methods perform on network data. Real-world datasets are generally not evenly distributed across dimensions such as time, space, or variable groups. Some strata may contain a larger number of observations than others. Analysing such data can directly impact the interpretation, as the larger group of strata can dominate the pattern seen. Sampling provides a way to address this issue. Stratified sampling in particular helps with these issues by dividing the data into subgroups and sampling within each group to ensure that all groups are represented within the sample. 
 
@@ -235,7 +237,7 @@ In the network context, they are generally categorised into three main classes [
   - Exploration-based sampling constructs samples by traversing the network, for example, random walks or snowball sampling. It is good at preserving local connectivity and community structure, but can be sensitive to the initial seeds, which lead to an overrepresentation of densely connected regions.
 
 
-## Data visualisation
+### Data visualisation
 
 ```{r}
 #| echo: false
@@ -331,11 +333,10 @@ girafe(ggobj = interactive_vis_edge,
 The `ggiraph` package [@ggiraph] provides an interactive element to the visualisation through the `ggplot2` extension. Creating interactive network visualisations, therefore, typically requires combining `ggraph` for layout construction with `ggiraph` for interactivity. Getting this to work together requires an insight into how `ggraph` works, which is not a seamless implementation. For example, `ggraph` provides `geom_node_*` and `geom_edge_*` functions for nodes and edges geometry, respectively, but these do not natively support interactivity. To make nodes interactive, `geom_point_interactive()` need to be use instead of `geom_node_point()`. Making edges interactive is more complex as it requires the use of `geom_segment_interactive()` and mapping the start and end coordinates (`x`, `y`, `xend`, `yend`) for each edge. By that point, if both node and edge need interactivity, then `ggraph` is not needed, and instead the node and edge can be treated as a different dataset and implement geom_point and geom_segment for drawing the node and edge.
 
 
-## Visual Inference
+### Visual Inference
 
 
-
-# Project 1b: Exploratory Analysis of Ambulance Demand and Efficiency with a Generalised Ambulance Model
+## Part B: Exploratory Analysis of Ambulance Demand and Effieciency with a Generalised Ambulance Model
 
 The efficiency of the ambulance transfer is critical in both scheduled and emergency transfer cases to minimise the resources used and affect the patient outcomes. In scheduled transfers, the longer the transfer, the fewer ambulances are available in the system, which potentially limits the number of ambulances available during the peak demand or emergency state. In emergency transfers, it directly influences the outcomes of the patient, especially for time-sensitive conditions such as trauma, cardiac emergencies, and stroke. Analysing ambulance transfer efficiency is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. In addition, predicting ambulance demand is also important as it allows the services to plan accordingly in different scenarios (e.g. peak demand).
 
@@ -343,3 +344,4 @@ The efficiency of the ambulance transfer is critical in both scheduled and emerg
 # Project 2: Dynamics Infectious Disease Modelling of Ambulance Network Changes
 
 
+# Timeline
