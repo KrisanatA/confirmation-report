@@ -221,7 +221,18 @@ graph |>
   filter(weight > 100)
 ```
 
-<!-- Data sampling -->
+
+### Sampling method
+
+Another important aspect of subsetting is understanding how sampling methods perform on network data. Real-world datasets are generally not evenly distributed across dimensions such as time, space, or variable groups. Some strata may contain a larger number of observations than others. Analysing such data can directly impact the interpretation, as the larger group of strata can dominate the pattern seen. Sampling provides a way to address this issue. Stratified sampling in particular helps with these issues by dividing the data into subgroups and sampling within each group to ensure that all groups are represented within the sample. 
+
+In the network context, they are generally categorised into three main classes [@chuong2025network]:
+
+  - Node-based sampling selects a subset of nodes from the network and retains edges that connect to the sampled node. It may fail to capture important global structural properties such as connectivity and clustering.
+  
+  - Edge-based sampling samples a subset of edges directly and includes the nodes incident to those edges. It is better for preserving structural patterns, but may introduce bias into the sample node set and distort centrality measures.
+
+  - Exploration-based sampling constructs samples by traversing the network, for example, random walks or snowball sampling. It is good at preserving local connectivity and community structure, but can be sensitive to the initial seeds, which lead to an overrepresentation of densely connected regions.
 
 
 ## Data visualisation
@@ -326,6 +337,7 @@ The `ggiraph` package [@ggiraph] provides an interactive element to the visualis
 
 # Project 1b: Exploratory Analysis of Ambulance Demand and Efficiency with a Generalised Ambulance Model
 
+The efficiency of the ambulance transfer is critical in both scheduled and emergency transfer cases to minimise the resources used and affect the patient outcomes. In scheduled transfers, the longer the transfer, the fewer ambulances are available in the system, which potentially limits the number of ambulances available during the peak demand or emergency state. In emergency transfers, it directly influences the outcomes of the patient, especially for time-sensitive conditions such as trauma, cardiac emergencies, and stroke. Analysing ambulance transfer efficiency is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. In addition, predicting ambulance demand is also important as it allows the services to plan accordingly in different scenarios (e.g. peak demand).
 
 
 # Project 2: Dynamics Infectious Disease Modelling of Ambulance Network Changes
