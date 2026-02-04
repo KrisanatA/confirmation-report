@@ -52,6 +52,34 @@ vic_map <- read_sf(here::here("data/map/LGA_2025_AUST_GDA2020/LGA_2025_AUST_GDA2
   filter(STE_NAME21 == "Victoria")
 ```
 
+```{r}
+#| echo: false
+racf_location <- transfers |>
+  select(sceneaddress, long_racf, lat_racf) |>
+  distinct() |>
+  rename(long = long_racf,
+         lat = lat_racf,
+         name = sceneaddress) |> 
+  mutate(type = "racf")
+
+hospital_location <- transfers |>
+  select(hospitalname, long_hosp, lat_hosp) |>
+  distinct() |>
+  rename(long = long_hosp,
+         lat = lat_hosp,
+         name = hospitalname) |> 
+  mutate(type = "hospital")
+
+full_location <- bind_rows(racf_location, hospital_location)
+
+simple_graph <- transfers |>
+  rename(from = sceneaddress,
+         to = hospitalname) |>
+  as_tbl_graph() |>
+  left_join(full_location, by = "name") |>
+  mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
+```
+
 # Background
 
 Recently, exploring and analysing large network structure data has sparked more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. This increase is largely due to an advancement in technology, such as the Global Positioning System (GPS), mobile devices, and remote sensing, which have significantly contribute to the precision and volume of spatio-temporal data [@spatio-temporal]. This type of data captures information on both spatial and temporal context. The spatial component describes the location or spatial geometry, while the temporal component records time information such as a timestamp or time interval [@rao2012spatiotemporal].
@@ -74,7 +102,7 @@ As multivariate spatio-temporal network data become more accessible and complex,
 
 Data cleaning is the first stage of a reliable analysis. Spatio-temporal data usually need to be checked for inconsistency of the temporal records, duplicated records, and spatial inaccuracies. Now, adding the network structure on top of that, such as nodes, edges, and their attributes, requires the network topology to be kept throughout the process. Typically, this stage involves tools such as `dplyr` [@dplyr] for manipulating the data, `tsibble` [@tsibble] for validating the temporal inconsistency, `sf` [@sf] for checking the coordinate inaccuracies, and `igraph`/`network` [@igraph, @network] for keeping the network structure.
 
-The `tidygraph` [@tidygraph] package provides a tidy API for graph and network manipulation, where network data are thought of as two tidy tables, one for node and one for edge data. In tidy data (@tidy-data), each variable has its own column, each observation has its own row, and each value has its own cell. These tables are then stored together within a `tbl_graph` object, which preserves the underlying network topology while allowing standard `dplyr` verbs to be applied. The interaction between node and edge tables is done through the use of a special function, `activate()`, which allows the user to switch between the two tables and apply `dplyr` operations such as `mutate()`, `group_by()`, and join operations.
+The `tidygraph` [@tidygraph] package provides a tidy API for graph and network manipulation, where network data are thought of as two tidy tables, one for node and one for edge data. In tidy data [@tidy-data], each variable has its own column, each observation has its own row, and each value has its own cell. These tables are then stored together within a `tbl_graph` object, which preserves the underlying network topology while allowing standard `dplyr` verbs to be applied. The interaction between node and edge tables is done through the use of a special function, `activate()`, which allows the user to switch between the two tables and apply `dplyr` operations such as `mutate()`, `group_by()`, and join operations.
 
 There are two main functions for creating `tbl_graph` object, `as_tbl_graph()` and `tbl_graph()`. The first function `as_tbl_graph()` takes in a different class of objects, such as `data.frame`, `igraph`, and `network`, then turns it into a `tbl_graph` object. While `tbl_graph()` takes in two `data.frame` objects, one for node and one for edge.
 
@@ -126,7 +154,7 @@ For spatial networks, the `sfnetworks` package [@sfnetworks] extends `tidygraph`
 <!-- However, the temporal data structure provided by `tsibble` is not directly compatible with `tidygraph` objects. As a result, validating temporal consistency requires converting data back to a `tsibble` object or performing a temporal check prior to the creation of `tbl_graph`. It introduces an important limitation, where common operations of filling missing observations are done outside the network context and therefore do not preserve the network topology. For example, if a node is missing in January 2020, how should the edges associated with that node be imputed? A sensible solution is to assume no edges exist during that period, which is reasonable in some cases but not in all cases. It highlights a key challenge in cleaning spatio-temporal network data, where temporal consistency and network structure should be considered jointly. The challenges require careful methodological decisions to ensure that both temporal attributes and the relational structure of the network remain coherent throughout the cleaning process. -->
 
 
-### Data subsetting
+### Data subsetting {#sec-datasubsetting}
 
 Data subsetting is used to extract a subset of spatio-temporal network data based on spatial, temporal, and multivariate variables. This includes grouping data by time periods or regions, as well as filtering based on variable values and network characteristics (e.g., in-degree). In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
 
@@ -223,49 +251,77 @@ graph |>
   filter(weight > 100)
 ```
 
+### Network Sampling
 
-#### Sampling method
+Another important aspect of subsetting is understanding how sampling methods perform on network data. Read-world datasets are often not evenly distributed across multiple dimensions such as time, space, or variable groups. Some strata may contain more observations than others, and analysing these can directly impact the interpretation, as the larger group of strata may dominate the patterns seen. Sampling provides a way to pick the data while keeping it representative of the population. Stratified sampling, in particular, helps with an imbalance case by dividing the data into subgroups and sampling within each group, ensuring that all groups are represented in the sampled data.
 
-Another important aspect of subsetting is understanding how sampling methods perform on network data. Real-world datasets are generally not evenly distributed across dimensions such as time, space, or variable groups. Some strata may contain a larger number of observations than others. Analysing such data can directly impact the interpretation, as the larger group of strata can dominate the pattern seen. Sampling provides a way to address this issue. Stratified sampling in particular helps with these issues by dividing the data into subgroups and sampling within each group to ensure that all groups are represented within the sample. 
+In the network context, sampling methods are generally categorised into three main classes [@chuong2025network]:
 
-In the network context, they are generally categorised into three main classes [@chuong2025network]:
+  - **Node-based sampling** selects a subset of nodes from the network and retains edges that are incident to the sampled nodes. This method is efficient and is usually implemented in large-scale studies [@ben2022sampling]. It often fails to capture important global structural properties such as connectivity and clustering.
 
-  - Node-based sampling selects a subset of nodes from the network and retains edges that connect to the sampled node. It may fail to capture important global structural properties such as connectivity and clustering.
+  - **Edge-based sampling** samples a subset of edges directly and includes the nodes incident to those edges. This method is better at preserving structural patterns [@jiao2024sampling]. However, it may introduce bias towards selecting nodes with higher degrees, resulting in biased sampled data.
   
-  - Edge-based sampling samples a subset of edges directly and includes the nodes incident to those edges. It is better for preserving structural patterns, but may introduce bias into the sample node set and distort centrality measures.
+  - **Exploration-based sampling** constructs samples by traversing the network, for example, using random walks or snowball sampling [@goodman1961snowball]. These methods are good at preserving local connectivity and community structure, but are sensitive to the initial seed choice. A densely connected or highly accessible section of the network may get overrepresented. A detailed discussion of exploration-based sampling is beyond the current scope of this work.
 
-  - Exploration-based sampling constructs samples by traversing the network, for example, random walks or snowball sampling. It is good at preserving local connectivity and community structure, but can be sensitive to the initial seeds, which lead to an overrepresentation of densely connected regions.
+The `tidgraph` package provides a method for sampling the data for a `tbl_graph` object through a `sample_n()` function. However, `sample_n()` has been superseded by `slice_sample()`, which is the current recommended approach for random sampling. Although the `sample_n()` function is not expected to be deprecated in the near future, it is currently limited to only critical bug fixes. A further limitation of the `tbl_graph` object is on stratified sampling, which is not directly supported, requiring converting the `tbl_graph` object back into a `tibble` [@tibble], performing stratified sampling on the node or edge table, and then filtering the original network based on the sampled nodes or edges. 
+
+```{r}
+#| echo: false
+full_edges <- patient |> 
+  rename(from = sceneaddress,
+         to = hospitalname)
+
+full_graph <- tbl_graph(nodes = full_location, edges = full_edges)
+```
+
+```{r}
+#| message: false
+set.seed(1)
+
+full_graph |> 
+  activate(nodes) |> 
+  sample_n(size = 20)
+
+full_graph |> 
+  activate(edges) |> 
+  sample_n(size = 20)
+
+full_graph |> 
+  activate(edges) |> 
+  sample_n(size = 20) |> 
+  activate(nodes) |> 
+  filter(!node_is_isolated())
+
+node_kept <- full_graph |> 
+  activate(nodes) |> 
+  as_tibble() |> 
+  group_by(type) |> 
+  sample_n(size = 10) |> 
+  pull(name)
+
+graph |> 
+  filter(name %in% node_kept)
+
+edges_kept <- full_graph |> 
+  activate(edges) |> 
+  as_tibble() |> 
+  group_by(daytype) |> 
+  sample_n(size = 10) |> 
+  pull(single_id)
+
+full_graph |> 
+  activate(edges) |> 
+  filter(single_id %in% edges_kept) |> 
+  activate(nodes) |> 
+  filter(!node_is_isolated())
+```
+
+As discussed in @sec-datasubsetting, nodes in a network can exist independently without incident edges. Thus, the edge-based sampling does not automatically remove nodes that become isolated after sampling. To remove these nodes, they must be explicitly removed by filtering the node table using the `node_is_isolated()` function.
 
 
 ### Data visualisation
 
-```{r}
-#| echo: false
-racf_location <- transfers |>
-  select(sceneaddress, long_racf, lat_racf) |>
-  distinct() |>
-  rename(long = long_racf,
-         lat = lat_racf,
-         name = sceneaddress)
-
-hospital_location <- transfers |>
-  select(hospitalname, long_hosp, lat_hosp) |>
-  distinct() |>
-  rename(long = long_hosp,
-         lat = lat_hosp,
-         name = hospitalname)
-
-full_location <- bind_rows(racf_location, hospital_location)
-
-simple_graph <- transfers |>
-  rename(from = sceneaddress,
-         to = hospitalname) |>
-  as_tbl_graph() |>
-  left_join(full_location, by = "name") |>
-  mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
-```
-
-Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summaries alone. Network data is often viewed as connections or flows between nodes/locations, and network-based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requires the use of a graph layout algorithm, such as the Kamada-Kawai layout (@kk). Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these becomes more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations.
+Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summaries alone. Network data is often viewed as connections or flows between nodes/locations, and network-based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requires the use of a graph layout algorithm, such as the Kamada-Kawai layout [@kk]. Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these becomes more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations.
 
 ```{r}
 #| label: fig-static-network
