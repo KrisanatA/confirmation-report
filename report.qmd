@@ -392,12 +392,35 @@ The `ggiraph` package [@ggiraph] provides an interactive element to the visualis
 ### Visual Inference
 
 
-## Part B: Exploratory Analysis of Ambulance Demand and Effieciency with a Generalised Ambulance Model
+## Part B: Exploratory Analysis of Ambulance Demand and Effieciency
 
 The efficiency of the ambulance transfer is critical in both scheduled and emergency transfer cases to minimise the resources used and affect the patient outcomes. In scheduled transfers, the longer the transfer, the fewer ambulances are available in the system, which potentially limits the number of ambulances available during the peak demand or emergency state. In emergency transfers, it directly influences the outcomes of the patient, especially for time-sensitive conditions such as trauma, cardiac emergencies, and stroke. Analysing ambulance transfer efficiency is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. In addition, predicting ambulance demand is also important as it allows the services to plan accordingly in different scenarios (e.g. peak demand).
 
+The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the location of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
 
-# Project 2: Dynamics Infectious Disease Modelling of Ambulance Network Changes
+Preliminaries result
+
+
+# Project 2: Dynamics Infectious Disease Modelling using a Generalised Ambulance Model
+
+This project focuses on understanding the impact of any changes in the ambulance transfer network affect the spread of infectious diseases, particularly among older populations in residential aged care facilities (RACFs). Ambulance transfer create a way in which infections can be transmitted throughout facilities and hospitals. Variations in transfer demand, routing strategies, or operational constraints can alter the structure of the network and, in turn, influence outbreak dynamics.
+
+Infectious disease dynamics describe how the disease is spread and evolves within the population over time. These dynamics depend on the contact between individuals or groups, movement between locations, and the timing of infection and recovery. Traditional compartmental models, such as susceptible-infectious-recovered (SIR) or susceptible-exposed-infectious-recovered (SEIR), are often used to represent the disease progression within and between groups.
+
+To capture the interaction between ambulance demand, transfer allocation, and infectious disease transmission on a dynamic network, this project proposes a three-step modelling framework.
+
+Step 1: Modelling Ambulance Demand
+
+Ambulance demand is modelled using a spatio-temporal point process, where each event represents a case requiring transfer between a residential aged care facility and hospital [@zhou2015spatio].
+
+Step 2: Ambulance Allocation and Network Construction
+
+Given the simulated demand, a deterministic or stochastic allocation method is applied to determine how calls are distributed across hospitals in Victoria. The real-world transfer patterns are observed through exploratory data analysis of the collected transfer data. The transfer allocation defines a network linking RACFs and hospitals.
+
+Step 3: Infectious Disease Dynamics on the Transfer Network
+
+The generated ambulance transfer network is then used as input to an infectious disease transmission model. It allows the disease to spread within facilities (RACFs and hospitals) and between the facilities through ambulance transfers.
+
 
 
 # Timeline
