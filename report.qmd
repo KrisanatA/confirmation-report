@@ -92,6 +92,17 @@ simple_graph <- transfers |>
 
 Recently, exploring and analysing large network structure data has sparked more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. This increase is largely due to an advancement in technology, such as the Global Positioning System (GPS), mobile devices, and remote sensing, which have significantly contribute to the precision and volume of spatio-temporal data [@spatio-temporal]. This type of data captures information on both spatial and temporal context. The spatial component describes the location or spatial geometry, while the temporal component records time information such as a timestamp or time interval [@rao2012spatiotemporal].
 
+  - Analysing spatio-temporal network data is a contemporary problem
+  
+  Be more specific
+
+  - Challenges:
+    - Data cleaning (temporal)
+    - Data wrangling (filtering/select text processing (recategorise))
+    - Data sampling (stratified)
+    - Visualising
+    - Inference/Prediction/Interpretation
+
 The emergency medical services and ambulance systems have an important role in ensuring that patient transfers are performed effectively and in a timely manner. This is especially important for an older population, where the delay could lead to an increase in health risk [@harmsen2015influence]. Older individuals often require continuous support, including 24-hour care, assistance with daily tasks, and medical supervision. Thus, many reside in the residential aged care facilities (RACFs), which are specifically designed to provide this comprehensive care [@kearney2006nearby]. RACFs frequently rely on the ambulance services to facilitate the transfer of an individual to the hospital. It can be an acute emergency or planned/scheduled medical appointments. The increase in demand for these transfers is driven by population ageing [@harris2018estimating]. It put incredible pressure on the ambulance resource and highlights the need for efficient planning and utilisation of the service.
 
 To gain insight into the transfer patterns, the data exploration, along with network representations linking RACFs and hospitals, provides a powerful framework. Network-based representations of the data are naturally perceived as relational, and people often associate the flow and connections with it. However, most network research tends to be conducted homogeneously, focusing primarily on the network topological properties while overlooking other important pieces of information, for example, the association between variables. While network representation is a powerful tool, especially for the transfers data, overemphasising network typology can lead to the neglect of the fundamental principles of data exploration. Which encourages a free investigation of the data to uncover patterns and unexpected results. Simple informative analyses, such as examining variable distribution, temporal trends, or even bivariate relationships, can reveal a lot of insights into transfer frequency, efficiency, and demand that are often masked by the network structure. Integrating data exploration with network-based approaches, therefore, allows for a better understanding of the RACF and hospital transfer.
