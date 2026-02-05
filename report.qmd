@@ -1,5 +1,6 @@
 ---
-title: "Comfirmation Report"
+title: "Visual methods for exploring multivariate spatio-temporal networks with application to health transport"
+subtitle: "Confirmation Report"
 author: "Krisanat Anukarnsakulchularp"
 format: 
   html:
