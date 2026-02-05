@@ -90,7 +90,7 @@ simple_graph <- transfers |>
 
 # Background
 
-Recently, exploring and analysing large network structure data has sparked more interest in the health field, particularly within emergency medical services (EMS) and ambulance systems. This increase is largely due to an advancement in technology, such as the Global Positioning System (GPS), mobile devices, and remote sensing, which have significantly contribute to the precision and volume of spatio-temporal data [@spatio-temporal]. This type of data captures information on both spatial and temporal context. The spatial component describes the location or spatial geometry, while the temporal component records time information such as a timestamp or time interval [@rao2012spatiotemporal].
+Analysing spatio-temporal network data is a contemporary research problem that has gained increasing interest in the health field, particularly within emergency medical services (EMS) and ambulance transfer systems.  Such data capture spatial, temporal, and often multivariate information. The spatial component generally represents geographic locations or spatial geometries, while the temporal component records time-related information through timestamps or time intervals [@rao2012spatiotemporal]. In addition, the underlying network structure creates connections and multivariate dependencies between locations and transfers. While techniques exist to analyse spatial and temporal components separately, performing analysis, and perhaps more importantly, exploring, these components in conjunction with the network structure remains an open challenge.
 
   - Analysing spatio-temporal network data is a contemporary problem
   
