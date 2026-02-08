@@ -334,7 +334,8 @@ simple_graph |>
   ggraph(x = long, y = lat) +
   geom_sf(data = vic_map, color = "white") +
   geom_edge_link(alpha = 0.1) +
-  geom_node_point(aes(color = category))
+  geom_node_point(aes(color = category)) +
+  scale_color_brewer(name = "Facility", palette = "Set1")
 ```
 
 Visualising high-dimensional network data can be challenging, especially through a static visualisation alone. The current tool for network visualisation in R is the `ggraph` package [@ggraph], which extends the `ggplot2` package [@ggplot2] to support relational data structures such as networks, graphs, and trees. The `ggraph` package is effective at visualising static networks, offering a range of layout algorithms for placing the node locations while keeping the same familiar `ggplot2` syntax. The support for interactive network visualisation with `ggraph` is currently limited. The reason static network visualisation is hard is that the amount of information that can be mapped to the visualisation is limited within a single figure. As shown in @fig-static-network, just a simple network representation can already become cluttered quickly. Answering detailed questions such as the number of transfers between a specific RACF and Hospital, or the name of a particular RACF, is difficult using static visualisation alone. Interactive visualisation help with these limitation by layering additional information onto the visualisation, allowing for further exploration.
@@ -352,7 +353,8 @@ interactive_vis_node <- simple_graph |>
                              y = y,
                              color = category,
                              tooltip = name,
-                             data_id = name))
+                             data_id = name)) +
+  scale_color_brewer(name = "Facility", palette = "Set1")
 
 girafe(ggobj = interactive_vis_node,
        options = list(
@@ -378,7 +380,8 @@ interactive_vis_edge <- simple_graph |>
         xend = long_hosp,
         yend = lat_hosp,
         tooltip = weight,
-        data_id = id))
+        data_id = id)) +
+  scale_color_brewer(name = "Facility", palette = "Set1")
   
 
 girafe(ggobj = interactive_vis_edge,
@@ -391,21 +394,23 @@ girafe(ggobj = interactive_vis_edge,
 The `ggiraph` package [@ggiraph] provides an interactive element to the visualisation through the `ggplot2` extension. Creating interactive network visualisations, therefore, typically requires combining `ggraph` for layout construction with `ggiraph` for interactivity. Getting this to work together requires an insight into how `ggraph` works, which is not a seamless implementation. For example, `ggraph` provides `geom_node_*` and `geom_edge_*` functions for nodes and edges geometry, respectively, but these do not natively support interactivity. To make nodes interactive, `geom_point_interactive()` need to be use instead of `geom_node_point()`. Making edges interactive is more complex as it requires the use of `geom_segment_interactive()` and mapping the start and end coordinates (`x`, `y`, `xend`, `yend`) for each edge. By that point, if both node and edge need interactivity, then `ggraph` is not needed, and instead the node and edge can be treated as a different dataset and implement geom_point and geom_segment for drawing the node and edge.
 
 
-### Visual Inference
+### Conclusion
+
+Current tools such as `tidygraph` have several limitations that are important for exploratory data analysis. First, temporal data are not easy to clean within `tidygraph`, and there is no direct support for filtering temporal networks. As a result, issues such as filling missing timestamps and inconsistent time period are currently handled outside the network context, which may affect the network validity. Second, support for data sampling method is limited, with most method work outside of `tidygraph` object. Finally, visualisation capabiliteis are constrained by the `ggraph` package, as layout calculations are handled internally, making it difficult to access and reuse layout information. To address these limitations, a propose new data object with better integration with existing packages such as `tibble`, `tsibble`, `sf`, `dplyr`, and `ggplot2`, enabling more effortless multivariate spatio-temporal network exploration.
 
 
-## Part B: Exploratory Analysis of Ambulance Demand and Efficiency
+## Part B: An Exploratory Analysis of the COVID-19 Impact on Ambulance Efficiency and Transfer Volume
 
-The efficiency of the ambulance transfer is critical in both scheduled and emergency transfer cases to minimise the resources used and affect the patient outcomes. In scheduled transfers, the longer the transfer, the fewer ambulances are available in the system, which potentially limits the number of ambulances available during the peak demand or emergency state. In emergency transfers, it directly influences the outcomes of the patient, especially for time-sensitive conditions such as trauma, cardiac emergencies, and stroke. Analysing ambulance transfer efficiency is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. In addition, predicting ambulance demand is also important as it allows the services to plan accordingly in different scenarios (e.g. peak demand).
+The efficiency of ambulance transfer is critical in both scheduled and emergency cases to minimise the resources used and affect on the patient outcomes. In scheduled transfers, the longer the transfer, the fewer ambulances are available in the system, which potentially limits the number of amublances available during the peak demand or emergency state. In emergency transfers, it directly influences the outcomes of the patient, especially for time-sensitive conditions such as trauma, cardiac emergencies, and stroke. Analysing ambulance transfer efficiency is essential for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. In addition to efficiency, ambulance transfer volume is a key factor for better ambulance management and resource allocation [@chen2015demand].
 
-The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the location of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
+During the COVID-19 pandemic, government-imposed lockdowns created significant challenges for ambulance services. Previous studies have shown that the pandemic affected the transfer of older individuals from residential aged care facilities to hospitals [@wyer2024impact; @nair2023monitoring; @botan2023pp63]. These restrictions limited ambulance availability and highlighted potential vulnerabilities in the reliance of ambulance transfers for aged care residents. Examinging ambulance efficiency and transfer volumes during lockdown periods can informs strategies to improve system resilience and preparedness for the future emergencies.
+
+The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the locaiton of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
 
 
 ### Efficiency
 
-The efficiency of the ambulance transfer is critical in both the case of scheduled and emergency transfer to minimise the use of resources. In the schedules service, the longer the transfer, the fewer ambulances are avaiable in the system, which poentially limits the number of ambulances available during an emergency state. For the emergency case, it directly influences the outcomes of the patient, espcially for time sensitive consitions such as trauma, cardiac emergencies, and stroke. The analysis of the ambulance transfer is therefore crucial for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system.
-
-Measuring efficiency can be done in many ways; one of the proxies that can be used for estimating these is the distance from the aged care facilities to hospital. The haversine distance is one that takes into account the curvature of the Earth. However, given the area covered by the dataset, the Euclidean distance will be used instead. It calculates the shortest distance between two points using the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, which is not a straight line, and therefore, the distance between the RACF and the hospital will generally be longer.
+Measuring efficiency can be done in many ways; one of the proxies that can be used for estimating these is the distance from the aged care facilities to hospital. The euclidean distance will be use for calculating a transfer disatnce. It is the shortest distance between two points using the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the acutual streeet network distance, which is not a straight lint, and there, the distance between RACF and the hospital will generally be longer.
 
 ```{r}
 #| code-summary: "Calculate distance"
@@ -429,6 +434,8 @@ patient_dist <- bind_cols(racf_sf, hosp_sf) |>
 #| code-summary: "Visualisation"
 #| label: fig-distance-dis
 #| echo: false
+#| fig-cap: "Histogram of an ambulance transfer distance for emergency and scheduled cases."
+
 patient_dist |>
   ggplot(aes(x = distance + 1)) +
   geom_histogram(bins = 45) +
@@ -445,11 +452,11 @@ dist_dis <- patient_dist |>
   pull(distance)
 ```
 
-From @fig-distance-dis, there seems to be zero distance transfer in the data, which might suggest either a data entry error or that the aged care facilities and hospital are next to each other. In the latter case, this might suggest that it may not need the ambulance to transfer the patient. After filtering the distance data to zero and manually going through them, it can be seen that the location of the aged care facility and hospital is, in fact, the same location. 
+From @fig-distance-dis, there is zero distance transfer in the data, which suggest either a data entry error or that the aged care facilities and hospital are next to each other (co-located RACF). In the latter case, this might suggest that it may not need the ambulance to transfer the patient. After filtering the distance data to zero and manually going through them, it can be seen that the locaiton of the aged care facility and hospital is, in fact, the same location.
 
-In an emergency case, it is important that the transfer is done quickly. It means that most of the time, the RACF that is right next to the hospital should not have a patient transferred to another hospital. One thing that will need to be considered is that the hospital, which is right next to the RACF, might not be able to handle the emergency case. In this case, the patient should be transferred to another emergency-capable hospital. This information can be verified through the hospital data, which has a column indicating whether the hospital has an emergency department or not.
+In an emergency case, it is important that thet transfer is done quickly (@sec-background). It means that most of the time, the RACF that is co-located with the hospital should not have a patient transferred to another hospital. One thing that will need to be considered is that the co-located hospital might not be able to handle the emergency case. In this case, the patient should be transferred to another closest emergency-capable hospital. This information can be verified through the hospital data, which has a column indicating whether the hospital has an emergency department or not.
 
-Based on this information, the efficiency can be improved through fewer transfers to the other hospital that is further away, especially the RACF, whose location is right next to the hospital. To check this, the distance is calculated between the RACF and hospital for all the possible combinations to see which RACF is next to which hospital.
+Based on this information, the efficiency can be improved through fewer transfers to the other hospital that is further away. espcially the co-located RACF. To check this, the distance is calculated between the RACFs and hospitals for all the possible combinations to see which RACF is next to which hospital.
 
 ```{r}
 #| code-summary: "Calculate all combination distance"
@@ -503,20 +510,21 @@ patient_dist |>
   count(dispatch, sort = TRUE) |>
   st_drop_geometry() |>
   filter(n > quantile(n, probs = 0.95)) |>
-  knitr::kable(caption = "RACF that is close to hospital")
+  knitr::kable(caption = "Co-located RACF")
 
 patient_dist |>
   filter(check == "Far") |>
   count(dispatch, sort = TRUE) |>
   st_drop_geometry() |>
   filter(n > quantile(n, probs = 0.95)) |>
-  knitr::kable(caption = "RACF that is far from hospital")
+  knitr::kable(caption = "Non co-located RACF")
 ```
 
 ```{r}
 #| code-summary: "Visualisation"
 #| label: fig-distance-dis-close
 #| echo: false
+#| fig-cap: "An ambulance transfer distance distribution for emergency and scheduled cases in the co-located RACF."
 patient_dist |>
   ggplot(aes(x = distance + 1)) +
   geom_histogram(bins = 45) +
@@ -525,12 +533,14 @@ patient_dist |>
   labs(y = "Count", x = "Distance (log-scale)")
 ```
 
-The expectation of the transfer distance for the RACF that is close to the hospital would be, on average, less than that of the other case. However, from @fig-distance-dis-close, it can be seen that, on average, the transfer distance for the RACF that is next to the hospital is higher. It actually raises more questions about why this is the case.
+The expectation of the transfer distance for the co-located RACF would be, on average, less than that of the other case. However, from @fig-distance-dis-close, it can be seen that, on average, the transfer distance for the co-located RACF is higher. It actually raises more questions to why this is the case.
 
 ```{r}
 #| code-summary: "Visualisation"
 #| label: fig-racf-close-net
 #| echo: false
+#| warning: false
+#| fig-cap: "The co-located RACF transfer network."
 simple_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
@@ -540,8 +550,8 @@ simple_graph |>
   ggraph(x = long, y = lat) +
   geom_sf(data = vic_map, color = "white") +
   geom_edge_link(alpha = 0.1) +
-  geom_node_point(aes(color = category)) +
-  scale_color_manual(values = c("grey", "blue"))
+  geom_node_point(color = "red") +
+  gghighlight(type == "racf")
 ```
 
 ```{r}
@@ -549,6 +559,7 @@ simple_graph |>
 #| label: fig-racf-close-point
 #| warning: false
 #| echo: false
+#| fig-cap: "The location of the RACF with the co-located RACF highlighted."
 simple_graph |>
   filter(category == "racf") |>
   ggraph(x = long, y = lat) +
@@ -557,7 +568,7 @@ simple_graph |>
   gghighlight(name %in% toupper(close))
 ```
 
-From @fig-racf-close-net, it can be observed that a lot of patients got transferred from the regional to the Melbourne area. Though visualising this can be hard on the map because the Melbourne area is smaller than the regional area, therefore, a lot of points inside the Melbourne area will get squished together, which makes it hard to visualise. One of the solutions is to group the hospitals within Melbourne together by their emergency capabilities.
+From @fig-racf-close-net, it can be observed that a lot of patients got transferred from the regional to the Melbourne area. Though visualising this can be hard on the mpa because the Melbourne area is smaller than the regional area, therefore, a lot of points inside the Melbourne are will get squished together, which makes it hard to visualise. One of the solutions is to groups the hospitals with Melbourne together by their emergency capabilities.
 
 ```{r}
 #| code-summary: "Grouping melbourne hospital"
@@ -615,6 +626,7 @@ simple_group_graph <- transfers |>
 #| code-summary: "Visualisation"
 #| echo: false
 #| label: fig-group-close-net-spatial
+#| fig-cap: "The co-located RACF transfer network with Melbourne hospital grouped."
 simple_group_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
@@ -626,13 +638,14 @@ simple_group_graph |>
   geom_edge_link(alpha = 0.1) +
   geom_node_point(aes(color = category)) +
   theme(legend.position = "bottom") +
-  scale_color_manual(values = pal_colorblind[1:4])
+  scale_color_brewer(palette = "Set1")
 ```
 
 ```{r}
 #| code-summary: "Visualisation"
 #| label: fig-group-close-net-free
 #| echo: false
+#| fig-cap: "The co-located RACF transfer network with Melbourne hospital grouped on the non-spatial layout."
 simple_group_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
@@ -643,11 +656,8 @@ simple_group_graph |>
   geom_edge_link(alpha = 0.3) +
   geom_node_point(aes(color = category)) +
   theme(legend.position = "bottom") +
-  scale_color_manual(values = pal_colorblind[1:4])
+  scale_color_brewer(palette = "Set1")
 ```
-
-The question is why these RACFs, which are right next to the hospital, have to transfer the patient to the hospital that is further away. From the summarising process, there is a repeated distance which might suggest that there is a common hospital that RACF likes to use, or there might be a common symptom that this is the closest hospital that can treat it.
-
 
 #### Transfer Distance
 
@@ -697,7 +707,7 @@ text_close_dispatch |>
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Zero Distance") 
 ```
 
@@ -709,7 +719,7 @@ text_close_dispatch |>
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Short Distance") 
 ```
 
@@ -721,7 +731,7 @@ text_close_dispatch |>
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Medium Distance") 
 ```
 
@@ -733,7 +743,7 @@ text_close_dispatch |>
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Long Distance") 
 ```
 
@@ -759,7 +769,7 @@ text_close_diagnosis |>
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Zero Distance") 
 ```
 
@@ -771,7 +781,7 @@ text_close_diagnosis |>
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Short Distance") 
 ```
 
@@ -783,7 +793,7 @@ text_close_diagnosis |>
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Medium Distance") 
 ```
 
@@ -795,7 +805,7 @@ text_close_diagnosis |>
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.8)) |> 
+  filter(n > quantile(n, probs = 0.9)) |> 
   knitr::kable(caption ="Long Distance") 
 ```
 
@@ -806,6 +816,7 @@ From the table, the dispatch and diagnosis reasons seem to point to the same thi
 #| code-summary: "Visualisation"
 #| label: fig-distance-dis-nozero
 #| echo: false
+#| fig-cap: "Histogram of an ambulance transfer distance for emergency and scheduled cases, removing zero distances."
 patient_dist |>
   filter(distance != 0) |>
   ggplot(aes(x = distance + 1)) +
@@ -815,32 +826,40 @@ patient_dist |>
   labs(y = "Count", x = "Distance (log-scale)")
 ```
 
+## Progress Update
+
+### Data cleaning and subsetting
+
+  - Explored multiple network analysis software including `tidygraph`, `igraph`, and `network` for comparison.
+
+  - Apply these software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on temporal data gap that affect total distance travelled calculations.
+
+  - Considering imputation strategies for temporal network data to adress missingness.
+
+### Data visualisation
+
+  - Experiment with crosstalk to crete linked, side-by-side visualisations combining network and simple descriptive plot.
+
+  - Constructed a supervisor-student relationship network to understand network theory.
+
+  - Explored `ggiraph` for interactive network visualisations.
+
+### Exploratory data analysis
+
+  - Preliminaries analysis of the ambulance transfer effieciency
+
 
 # Project 2: Dynamics Infectious Disease Modelling using a Generalised Ambulance Model
 
-This project focuses on understanding the impact of any changes in the ambulance transfer network affect the spread of infectious diseases, particularly among older populations in residential aged care facilities (RACFs). Ambulance transfer create a way in which infections can be transmitted throughout facilities and hospitals. Variations in transfer demand, routing strategies, or operational constraints can alter the structure of the network and, in turn, influence outbreak dynamics.
+## Part A: Generalised Ambulance Model
 
-Infectious disease dynamics describe how the disease is spread and evolves within the population over time. These dynamics depend on the contact between individuals or groups, movement between locations, and the timing of infection and recovery. Traditional compartmental models, such as susceptible-infectious-recovered (SIR) or susceptible-exposed-infectious-recovered (SEIR), are often used to represent the disease progression within and between groups.
+This project focuses on understanding the impact of any changes in the ambulance transfer network affect the spread of infectious diseases, particularly among older populations in residential aged care facilities. Ambulance transfer create a way in which infections can be transmitted throughout facilities and hospitals [@gruber2013multidrug]. Variations in transfer volume, patterns, or constraints can alter the structure of the network and, in turn, influence outbreak dynamics. There are a couple 
 
-To capture the interaction between ambulance demand, transfer allocation, and infectious disease transmission on a dynamic network, this project proposes a three-step modelling framework.
+## Part B: Dynamics Infectious Disease Modelling
 
-Step 1: Modelling Ambulance Demand
-
-Ambulance demand is modelled using a spatio-temporal point process, where each event represents a case requiring transfer between a residential aged care facility and hospital [@zhou2015spatio].
-
-Step 2: Ambulance Allocation and Network Construction
-
-Given the simulated demand, a deterministic or stochastic allocation method is applied to determine how calls are distributed across hospitals in Victoria. The real-world transfer patterns are observed through exploratory data analysis of the collected transfer data. The transfer allocation defines a network linking RACFs and hospitals.
-
-Step 3: Infectious Disease Dynamics on the Transfer Network
-
-The generated ambulance transfer network is then used as input to an infectious disease transmission model. It allows the disease to spread within facilities (RACFs and hospitals) and between the facilities through ambulance transfers.
+Infectious diesease dynamics describe how the disease is spread and evolves within the population over time.
 
 
-# Timeline
+## Progress Update
 
-
-
-# References
-
-
+  - Try a statistical network model such as `ergm` and `intergraph` for switching between `igraph` and `network`
