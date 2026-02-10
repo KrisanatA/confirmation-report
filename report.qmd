@@ -456,18 +456,17 @@ Current tools, such as `tidygraph`, have several limitations that are important 
 To address these limitations, I will be creating a new data object. For temporal information, this object will integrate temporal and network topology jointly. Rather than converting an `igraph` to a `tibble` object, it will be built on top of a `tibble` object, allowing full compatibility with other tools. Additionally, the object will be designed to work with the `ggplot2` package for better expansion and application of other methods for network visualisation.
 
 
-## Part B: An Exploratory Analysis of the COVID-19 Impact on Ambulance Efficiency and Transfer Volume
+## Part B: An Exploratory Analysis of Ambulance Transfer in Victoria
 
-The efficiency of ambulance transfer is critical in both scheduled and emergency cases to minimise the resources used and the effect on patient outcomes. In scheduled transfers, the longer the transfer, the fewer ambulances are available in the system, which potentially limits the number of ambulances available during the peak demand or emergency state. In emergency transfers, it directly influences the outcomes of the patient, especially for time-sensitive conditions such as trauma, cardiac emergencies, and stroke. Analysing ambulance transfer efficiency is essential for improving the quality of emergency care, ensuring an adequate number of available ambulances, and strengthening the system. In addition to efficiency, ambulance transfer volume is a key factor for better ambulance management and resource allocation [@chen2015demand].
+Ambulance and emergency medical services play a critical role in transferring older individuals from residential aged care facilities (RACFs) to hospitals. These transfers form a links between RACFs and hospitals across space and time, and are associated with multiple variable such as age, sex, and reason of transfer. Exploratory analysis provides an initial step in examining ambulance transfer data by reveling pattern, anomalies, and relationships. This data can be represented as a multivariate spatio-temporal network, where facilities are represented as nodes and ambulance transfers as time-varying edges.
 
 During the COVID-19 pandemic, government-imposed lockdowns created significant challenges for ambulance services. Previous studies have shown that the pandemic affected the transfer of older individuals from residential aged care facilities to hospitals [@wyer2024impact; @nair2023monitoring; @botan2023pp63]. These restrictions limited ambulance availability and highlighted potential vulnerabilities in the reliance on ambulance transfers for aged care residents. Examining ambulance efficiency and transfer volumes during lockdown periods can inform strategies to improve system resilience and preparedness for future emergencies.
 
-The ambulance transfer data was provided by Alfred Health. The dataset included the following aspects: spatial, temporal, and multivariate information on each transfer. The spatial covers the location of the aged care facilities and the hospital (destination) in latitude and longitude. While the temporal provides the date of the transfers, which cover the period between January 2018 and May 2022. For multivariate information, it covers hospitals, aged care facilities, and patient-level details.
 
+### Transfer distance
 
-### Efficiency
+To quantify the ambulance transfer, instead of just looking at the number of transfers, the distance travelled from the aged care facilities to the hospital is considered. The Euclidean distance will be used to calculate a transfer distance. It is the shortest distance between two points based on the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, which is not a straight line, and therefore, the distance between the RACF and the hospital will generally be longer.
 
-Measuring efficiency can be done in many ways; one of the proxies that can be used for estimating these is the distance from the aged care facilities to the hospital. The Euclidean distance will be used for calculating a transfer distance. It is the shortest distance between two points using the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, which is not a straight line, and therefore, the distance between RACF and the hospital will generally be longer.
 
 ```{r}
 #| code-summary: "Calculate distance"
@@ -491,13 +490,20 @@ patient_dist <- bind_cols(racf_sf, hosp_sf) |>
 #| code-summary: "Visualisation"
 #| label: fig-distance-dis
 #| echo: false
-#| fig-cap: "Histogram of an ambulance transfer distance for emergency and scheduled cases."
+#| fig-cap: "Histogram of ambulance transfer distances for emergency and scheduled cases, with the median indicated by the blue line and the first and third quartiles shown in red. The distributions for emergency and scheduled transfers are similar, with no large difference between the two groups."
 
 patient_dist |>
+  group_by(routine) |> 
+  mutate(median = median(distance + 1),
+         q1 = quantile(distance + 1, probs = 0.25),
+         q3 = quantile(distance + 1, probs = 0.75)) |> 
   ggplot(aes(x = distance + 1)) +
   geom_histogram(bins = 45) +
   facet_wrap(~routine, scales = "free_y", ncol = 1) +
   scale_x_log10() +
+  geom_vline(aes(xintercept = median), color = "blue") +
+  geom_vline(aes(xintercept = q1), color = "red") +
+  geom_vline(aes(xintercept = q3), color = "red") +
   labs(y = "Count", x = "Distance (log-scale)")
 ```
 
@@ -509,11 +515,10 @@ dist_dis <- patient_dist |>
   pull(distance)
 ```
 
-From @fig-distance-dis, there is zero distance transfer in the data, which suggests either a data entry error or that the aged care facilities and hospital are next to each other (co-located RACF). In the latter case, this might suggest that it may not need the ambulance to transfer the patient. After filtering the distance data to zero and manually going through them, it can be seen that the location of the aged care facility and hospital is, in fact, the same location.
+From @fig-distance-dis, the median is lower for the emergency transfer compared to scheduled transfers, but not much difference in terms of their distribution. However, there are transfers with zero distance in the data, which might suggest either a data entry error or that the aged care facilities and hospitals are co-located (i.e., located next to each other). In the latter case, this might suggest that the transfer may not be necessary. After filtering the distance data to zero and going through them manually, it can be seen that the aged care facility and hospital are indeed in the same location.
 
-In an emergency case, it is important that the transfer is done quickly (@sec-background). It means that most of the time, the RACF that is co-located with the hospital should not have a patient transferred to another hospital. One thing that will need to be considered is that the co-located hospital might not be able to handle the emergency case. In this case, the patient should be transferred to the closest emergency-capable hospital. This information can be verified through the hospital data, which has a column indicating whether the hospital has an emergency department or not.
+Generally, transfers of the patient should be done quickly, which means sending them to the closest hospital available. It could also explain why some RACFs have a zero transfer distance. Though when the co-located hospital cannot handle emergency cases, the ambulance will need to transfer patients to the nearest hospital with an emergency department. It can be verified using the hospital data, which includes a column indicating whether the hospital has an emergency department. To further analyse this, the distances will be calculated between RACFs and hospitals across all possible combinations to identify which RACFs are located next to hospitals. After the calculation, the RACFs will be categorised into two groups: RACFs close to hospitals and those otherwise.
 
-Based on this information, the efficiency can be improved through fewer transfers to the other hospital that is further away. especially the co-located RACF. To check this, the distance is calculated between the RACFs and hospitals for all the possible combinations to see which RACF is next to which hospital.
 
 ```{r}
 #| code-summary: "Calculate all combination distance"
@@ -554,27 +559,9 @@ close <- all_distance |>
   distinct(name) |>
   pull(name) |>
   trimws()
-```
 
-```{r}
-#| code-summary: "Dispatch reason"
-#| echo: false
 patient_dist <- patient_dist |>
   mutate(check = ifelse(sceneaddress %in% toupper(close), "Close", "Far"))
-
-patient_dist |>
-  filter(check == "Close") |>
-  count(dispatch, sort = TRUE) |>
-  st_drop_geometry() |>
-  filter(n > quantile(n, probs = 0.95)) |>
-  knitr::kable(caption = "Co-located RACF")
-
-patient_dist |>
-  filter(check == "Far") |>
-  count(dispatch, sort = TRUE) |>
-  st_drop_geometry() |>
-  filter(n > quantile(n, probs = 0.95)) |>
-  knitr::kable(caption = "Non co-located RACF")
 ```
 
 ```{r}
@@ -583,32 +570,18 @@ patient_dist |>
 #| echo: false
 #| fig-cap: "An ambulance transfer distance distribution for emergency and scheduled cases in the co-located RACF."
 patient_dist |>
+  group_by(routine, check) |>
+  mutate(median = median(distance + 1),
+         q1 = quantile(distance + 1, prob = 0.25),
+         q3 = quantile(distance + 1, prob = 0.75)) |>
   ggplot(aes(x = distance + 1)) +
   geom_histogram(bins = 45) +
   facet_wrap(~check + routine, scales = "free_y", ncol = 2) +
+  geom_vline(aes(xintercept = median), color = "blue") +
+  geom_vline(aes(xintercept = q1), color = "red") +
+  geom_vline(aes(xintercept = q3), color = "red") +
   scale_x_log10() +
   labs(y = "Count", x = "Distance (log-scale)")
-```
-
-The expectation of the transfer distance for the co-located RACF would be, on average, less than that of the other case. However, from @fig-distance-dis-close, it can be seen that, on average, the transfer distance for the co-located RACF is higher. It actually raises more questions about why this is the case.
-
-```{r}
-#| code-summary: "Visualisation"
-#| label: fig-racf-close-net
-#| echo: false
-#| warning: false
-#| fig-cap: "The co-located RACF transfer network."
-simple_graph |>
-  activate(edges) |>
-  mutate(from_name = .N()$name[from]) |>
-  filter(from_name %in% toupper(close)) |>
-  activate(nodes) |>
-  filter(!node_is_isolated()) |>
-  ggraph(x = long, y = lat) +
-  geom_sf(data = vic_map, color = "white") +
-  geom_edge_link(alpha = 0.1) +
-  geom_node_point(color = "red") +
-  gghighlight(type == "racf")
 ```
 
 ```{r}
@@ -625,11 +598,14 @@ simple_graph |>
   gghighlight(name %in% toupper(close))
 ```
 
-From @fig-racf-close-net, it can be observed that a lot of patients got transferred from the regional to the Melbourne area. Though visualising this can be hard on the map because the Melbourne area is smaller than the regional area, therefore, a lot of points inside the Melbourne area will get squished together, which makes it hard to visualise. One of the solutions is to group the hospitals with Melbourne together by their emergency capabilities.
+The expectation of the transfer distance for the co-located RACF would be shorter than that of the other RACFs. However, as shown in @fig-distance-dis-close, the median transfer distance for the co-located RACF is higher. From @fig-racf-close-point, it can be seen that there are many more co-located RACFs in the regional area than in the Melbourne area, which might explain the bimodality observed in @fig-distance-dis-close. This bimodality is likely caused by the longer travel distances for regional RACFs compared to those in Melbourne.
+
+To highlight this regional effect, a sample of RACFs will be visualised on a map. The sampling is used to reduce edge clustering while still representing the observational data, making it easier to observe patterns. Additionally, since there are many facilities inside the Melbourne area, hospitals in Melbourne will be grouped based on their emergency capabilities.
 
 ```{r}
 #| code-summary: "Grouping melbourne hospital"
 #| echo: false
+#| message: false
 hospital_melbourne <- hospital_location |>
   mutate(classification = ifelse(between(lat, -38.5, -37.5) &
                                  between(long, 144.5, 145.5),
@@ -644,10 +620,10 @@ hospital_emergency <- hos_list |>
 
 simulate_location <- tibble::tibble(name = c("MELBOURNE HOSPITAL EMERGENCY",
                                              "MELBOURNE HOSPITAL NON EMERGENCY"),
-                                    long = c(144.75, 145.25),
-                                    lat = c(-38, -38))
+                                    long = c(144.9, 145.1),
+                                    lat = c(-37.75, -37.75))
 
-full_location <- bind_rows(full_location, simulate_location)
+full_location_simulate <- bind_rows(full_location, simulate_location)
 
 simple_group_graph <- transfers |>
   mutate(hospitalname = case_when(
@@ -661,8 +637,10 @@ simple_group_graph <- transfers |>
                                   )) |>
   rename(from = sceneaddress,
          to = hospitalname) |>
+  group_by(from, to) |> 
+  summarise(weight = sum(weight)) |> 
   as_tbl_graph() |>
-  left_join(full_location, by = "name") |>
+  left_join(full_location_simulate, by = "name") |>
   mutate(category = case_when(
                               name %in% transfers$sceneaddress ~ "RACF",
                               name == "MELBOURNE HOSPITAL EMERGENCY" 
@@ -677,23 +655,38 @@ simple_group_graph <- transfers |>
                                       "Regional Hospital", 
                                       "RACF"))
          )
+
+set.seed(123)
+
+sample_racf <- simple_group_graph |>
+  activate(edges) |>
+  mutate(from_name = .N()$name[from]) |>
+  filter(from_name %in% toupper(close)) |>
+  activate(nodes) |>
+  filter(!node_is_isolated(),
+         category == "RACF") |>
+  sample_n(size = 5) |> 
+  as_tibble() |>
+  pull(name)
 ```
 
 ```{r}
 #| code-summary: "Visualisation"
 #| echo: false
+#| warning: false
 #| label: fig-group-close-net-spatial
-#| fig-cap: "The co-located RACF transfer network with Melbourne hospital is grouped."
+#| fig-cap: "The sampled co-located RACF transfer network, where the Melbourne hospital is grouped."
 simple_group_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
-  filter(from_name %in% toupper(close)) |>
+  filter(from_name %in% sample_racf) |>
   activate(nodes) |>
   filter(!node_is_isolated()) |>
   ggraph(x = long, y = lat) +
   geom_sf(data = vic_map, color = "white") +
-  geom_edge_link(alpha = 0.1) +
-  geom_node_point(aes(color = category)) +
+  geom_edge_link(aes(edge_alpha = weight)) +
+  geom_point(aes(x = x, y = y, color = category), position = position_dodge(0.1)) +
+  scale_edge_alpha(guide = "none") +
   theme(legend.position = "bottom") +
   scale_color_brewer(palette = "Set1")
 ```
@@ -702,25 +695,24 @@ simple_group_graph |>
 #| code-summary: "Visualisation"
 #| label: fig-group-close-net-free
 #| echo: false
-#| fig-cap: "The co-located RACF transfer network with Melbourne hospital is grouped on the non-spatial layout."
+#| fig-cap: "The sample co-located RACF transfer network, where the Melbourne hospital is grouped on the non-spatial layout."
 simple_group_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
-  filter(from_name %in% toupper(close)) |>
+  filter(from_name %in% sample_racf) |>
   activate(nodes) |>
   filter(!node_is_isolated()) |>
   ggraph(layout = "stress") +
-  geom_edge_link(alpha = 0.3) +
+  geom_edge_link(aes(edge_alpha = weight)) +
   geom_node_point(aes(color = category)) +
   theme(legend.position = "bottom") +
+  scale_edge_alpha(guide = "none") +
   scale_color_brewer(palette = "Set1")
 ```
 
-#### Transfer Distance
+From @fig-group-close-net-spatial and @fig-group-close-net-free, it can be observed that many patients are transferred from regional areas to Melbourne. It explains why the median travel distance is longer, as trips from regional RACFs to Melbourne hospitals cover a greater distance than transfers within Melbourne itself. Following this, transfer reasons, such as dispatch type diagnosis, will be explored. To make comparison and interpretation easier, the transfer distance will be grouped into the following;
 
-To further analyse the common reason for the patient transfer (RACF next to Hospital), the transfer distance will be grouped into the following;
-
-- Zero distance (RACF and Hospital that is co-located)
+- Zero distance (co-located facilities)
 
 - Between 0 and 10km (Short-distance)
 
@@ -729,7 +721,7 @@ To further analyse the common reason for the patient transfer (RACF next to Hosp
 - Above 50km (Long-distance)
 
 
-##### Dispatch Reason
+#### Dispatch Reason
 
 ```{r}
 #| code-summary: "Grouping distance"
@@ -805,8 +797,9 @@ text_close_dispatch |>
 ```
 
 
+#### Diagnosis Reason
 
-##### Diagnosis Reason
+
 
 ```{r}
 #| code-summary: "Count the diagnosis reason (RACF next to hospital)"
@@ -866,22 +859,21 @@ text_close_diagnosis |>
   knitr::kable(caption ="Long Distance") 
 ```
 
-From the table, the dispatch and diagnosis reasons seem to point to the same thing, which is that for the shorter distance, the reason seems to be about the injuries that require quick transfer, while the medium to long-distance suggests mental health issues. It is expected that the emergency transfer that requires quick attention should be done quickly.
+From the tables, the dispatch and diagnosis reasons seem to point to the same thing, which is that for the shorter distance, the reason seems to be about the injuries that require quick transfer, while the medium to long-distance suggests mental health issues. It is expected that the emergency transfer that requires quick attention should be done quickly.
 
+### Next step
 
-```{r}
-#| code-summary: "Visualisation"
-#| label: fig-distance-dis-nozero
-#| echo: false
-#| fig-cap: "Histogram of an ambulance transfer distance for emergency and scheduled cases, removing zero distances."
-patient_dist |>
-  filter(distance != 0) |>
-  ggplot(aes(x = distance + 1)) +
-  geom_histogram(bins = 45) +
-  scale_x_log10() +
-  facet_wrap(~routine, scale = "free_y", ncol = 1) +
-  labs(y = "Count", x = "Distance (log-scale)")
-```
+  - Use actual road network distances to get more accurate travel measurements.
+
+  - Conduct a more in-depth analysis of differences between emergency and scheduled transfers.
+
+  - Analyse the potential overuse of ambulance callouts.
+
+  - Examine the temporal patterns, such as peak demand for transfers.
+
+  - Assess the impact of COVID-19 on transfer patterns
+
+  - Consider the implications for policymakers, such as the effects of a hospital shutdown.
 
 
 ## Progress Update
