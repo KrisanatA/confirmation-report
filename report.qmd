@@ -394,7 +394,9 @@ As discussed in @sec-datasubsetting, nodes in a network can exist independently 
 
 ### Data visualisation
 
-Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summaries alone. Network data is often viewed as connections or flows between nodes/locations, and network-based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requires the use of a graph layout algorithm, such as the Kamada-Kawai layout [@kk]. Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these becomes more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations.
+Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summaries alone. Network data is often viewed as connections or flows between nodes/locations, and network-based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requires the use of a graph layout algorithm, such as the Kamada-Kawai layout [@kk]. Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these becomes more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations. 
+
+Visualising multivariate spatio-temporal network data can be challenging. When spatial information is available, the decision to incorporate it into the visualisation is important. On one hand, spatial information allows nodes to be mapped to geographic space, making it easier to infer where nodes are located. On the other hand, omitting spatial information can help reveal non-spatial patterns in the network. Other problems arise when data are highly concentrated in urban areas, making it hard to perceive patterns, or when temporal information is added. A common approach for handling time is facetting, but comparing them requires many back-and-forths. Another possible solution is to animate the network visualisation.
 
 ```{r}
 #| label: fig-static-network
@@ -409,40 +411,16 @@ simple_graph |>
   scale_color_brewer(name = "Facility", palette = "Set1")
 ```
 
-Visualising high-dimensional network data can be challenging, especially through a static visualisation alone. The current tool for network visualisation in R is the `ggraph` package [@ggraph], which extends the `ggplot2` package [@ggplot2] to support relational data structures such as networks, graphs, and trees. The `ggraph` package is effective at visualising static networks, offering a range of layout algorithms for placing the node locations while keeping the same familiar `ggplot2` syntax. The support for interactive network visualisation with `ggraph` is currently limited. The reason static network visualisation is hard is that the amount of information that can be mapped to the visualisation is limited within a single figure. As shown in @fig-static-network, just a simple network representation can already become cluttered quickly. Answering detailed questions such as the number of transfers between a specific RACF and Hospital, or the name of a particular RACF, is difficult using static visualisation alone. Interactive visualisation helps with these limitations by layering additional information onto the visualisation, allowing for further exploration.
+The main limitation of static network visualisation is the restricted amount of information that can be shown in a single figure. The current tool for network visualisation in R is the `ggraph` package [@ggraph], which extends the `ggplot2` package [@ggplot2] to support relational data structures such as networks, graphs, and trees. The `ggraph` package is effective at visualising static networks, offering a range of layout algorithms for placing the node locations while keeping the same familiar `ggplot2` syntax. The support for interactive network visualisation with `ggraph` is currently limited. The reason static network visualisation is hard is that the amount of information that can be mapped to the visualisation is limited within a single figure. As shown in @fig-static-network, just a simple network representation can already become cluttered quickly. Answering detailed questions such as the number of transfers between a specific RACF and Hospital, or the name of a particular RACF, is difficult using static visualisation alone. Interactive visualisation helps with these limitations by layering additional information onto the visualisation, allowing for further exploration.
 
 ```{r}
-#| label: fig-interact-node
-#| fig-cap: "An ambulance transfer network in Victoria between residential aged care facilities and hospitals with an interactive node."
+#| label: fig-interact-network
+#| fig-cap: "An interactive ambulance transfer network in Victoria between residential aged care facilities and hospitals."
 #| code-summary: "Visualisation"
-interactive_vis_node <- simple_graph |> 
-  mutate(name = str_remove(name, "'")) |> 
+interactive_vis <- simple_graph |>
+  mutate(name = str_remove(name, "'")) |>
   ggraph(x = long, y = lat) +
   geom_sf(data = vic_map, color = "white") +
-  geom_edge_link(alpha = 0.1) +
-  geom_point_interactive(aes(x = x, 
-                             y = y,
-                             color = category,
-                             tooltip = name,
-                             data_id = name)) +
-  scale_color_brewer(name = "Facility", palette = "Set1")
-
-girafe(ggobj = interactive_vis_node,
-       options = list(
-         opts_hover(css = "fill:lightblue;stroke:grey;stroke-width:0.5px"),
-         opts_zoom(min = 0.5, max = 3)
-       ))
-```
-
-```{r}
-#| label: fig-interact-edge
-#| fig-cap: "An ambulance transfer network in Victoria between residential aged care facilities and hospitals with an interactive edge."
-#| code-summary: "Visualisation"
-
-interactive_vis_edge <- simple_graph |> 
-  ggraph(x = long, y = lat) +
-  geom_sf(data = vic_map, color = "white") +
-  geom_node_point(aes(color = category)) +
   geom_segment_interactive(
     data = simple_graph |> activate(edges) |> as_tibble() |> mutate(id = row_number()),
     alpha = 0.2,
@@ -452,10 +430,14 @@ interactive_vis_edge <- simple_graph |>
         yend = lat_hosp,
         tooltip = weight,
         data_id = id)) +
+  geom_point_interactive(aes(x = x,
+                             y = y,
+                             color = category,
+                             tooltip = name,
+                             data_id = name)) +
   scale_color_brewer(name = "Facility", palette = "Set1")
-  
 
-girafe(ggobj = interactive_vis_edge,
+girafe(ggobj = interactive_vis,
        options = list(
          opts_hover(css = "fill:lightblue;stroke:grey;stroke-width:0.5px"),
          opts_zoom(min = 0.5, max = 3)
@@ -467,7 +449,9 @@ The `ggiraph` package [@ggiraph] provides an interactive element to the visualis
 
 ### Conclusion
 
-Current tools, such as `tidygraph`, have several limitations that are important for exploratory data analysis. First, temporal data are not easy to clean within `tidygraph`, and there is no direct support for filtering temporal networks. As a result, issues such as filling missing timestamps and inconsistent time periods are currently handled outside the network context, which may affect the network's validity. Second, support for the data sampling method is limited, with most methods working outside of the `tidygraph` object. Finally, visualisation capabilities are constrained by the `ggraph` package, as layout calculations are handled internally, making it difficult to access and reuse layout information. To address these limitations, a new data object with better integration with existing packages such as `tibble`, `tsibble`, `sf`, `dplyr`, and `ggplot2`, enabling more effortless multivariate spatio-temporal network exploration, is proposed.
+Current tools, such as `tidygraph`, have several limitations that are important for exploratory data analysis. First, temporal data are not easy to clean within `tidygraph`, and there is no direct support for filtering temporal networks. As a result, issues such as filling missing timestamps and inconsistent time periods are currently handled outside the network context, which may affect the network's validity. Second, support for the data sampling method is limited, with most methods working outside of the `tidygraph` object. Finally, visualisation capabilities are constrained by the `ggraph` package, as layout calculations are handled internally, making it difficult to access and reuse layout information for expanding the visualisation method. 
+
+To address these limitations, I will be creating a new data object. For temporal information, this object will integrate temporal and network topology jointly. Rather than converting an `igraph` to a `tibble` object, it will be built on top of a `tibble` object, allowing full compatibility with other tools. Additionally, the object will be designed to work with the `ggplot2` package for better expansion and application of other methods for network visualisation.
 
 
 ## Part B: An Exploratory Analysis of the COVID-19 Impact on Ambulance Efficiency and Transfer Volume
