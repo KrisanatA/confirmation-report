@@ -171,7 +171,10 @@ A basic requirement in cleaning temporal network data is the ability to check wh
 
 ### Data Subsetting {#sec-datasubsetting}
 
-Data subsetting is used to extract a subset of spatio-temporal network data based on spatial, temporal, and multivariate variables. This includes grouping data by time periods or regions, as well as filtering based on variable values and network characteristics (e.g., in-degree). In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
+Data subsetting is used to extract a subset of spatio-temporal network data based on spatial, temporal, and multivariate variables. It includes grouping data by time periods or regions, as well as filtering based on variable values and network characteristics (e.g., in-degree). Subsetting is particularly useful for in-depth analysis, where it may need data from all RACFs within a certain distance of a particular hospital or transfers occurring during the weekends.
+
+In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
+
 
 ```{r}
 #| echo: false
@@ -264,7 +267,7 @@ graph |>
 
 ### Network Sampling
 
-Another important aspect of subsetting is understanding how sampling methods perform on network data. Real-world datasets are often not evenly distributed across multiple dimensions such as time, space, or variable groups. Some strata may contain more observations than others, and analysing these can directly impact the interpretation, as the larger group of strata may dominate the patterns seen. Sampling provides a way to subset the data while keeping it representative of the population. Stratified sampling, in particular, helps with an imbalance case by dividing the data into subgroups and sampling within each group, ensuring that all groups are represented in the sampled data.
+Another important aspect of subsetting is understanding how sampling methods perform on network data. Observational data are often not evenly distributed across multiple dimensions such as time, space, or variable groups. Some strata may contain more observations than others, and analysing these can directly impact the interpretation, as the larger group of strata may dominate the patterns seen. Sampling provides a way to subset the data while keeping it representative of the population. Stratified sampling, in particular, helps with an imbalance case by dividing the data into subgroups and sampling within each group, ensuring that all groups are represented in the sampled data.
 
 ```{r}
 #| echo: false
