@@ -719,18 +719,10 @@ simple_group_graph |>
   scale_color_brewer(palette = "Set1")
 ```
 
-From @fig-group-close-net-spatial and @fig-group-close-net-free, it can be observed that many patients are transferred from regional areas to Melbourne. It explains why the median travel distance is longer, as trips from regional RACFs to Melbourne hospitals cover a greater distance than transfers within Melbourne itself. Following this, transfer reasons, such as dispatch type diagnosis, will be explored. To make comparison and interpretation easier, the transfer distance will be grouped into the following;
+From @fig-group-close-net-spatial and @fig-group-close-net-free, it can be observed that many patients are transferred from regional areas to Melbourne. It explains why the median travel distance is longer, as trips from regional RACFs to Melbourne hospitals cover a greater distance than transfers within Melbourne itself. Following this, transfer reasons, such as dispatch type diagnosis, will be explored. To make comparison and interpretation easier, the transfer distance will be grouped into four categories: zero-distance (co-located facilities), short-distance (between 0 and 10km), medium-distance (between 10km and 50km), and long-distance (above 50km).
 
-- Zero distance (co-located facilities)
+From the @tbl-dispatch and @tbl-diagnosis, the reasons seem to point to the same thing, which is that for the shorter distance, the reason seems to be about the injuries that require quick transfer, while the medium to long-distance suggests mental health issues. This is expected for the emergency transfer to be travelled over a shorter distance.
 
-- Between 0 and 10km (Short-distance)
-
-- Between 10km and 50km (Medium-distance)
-
-- Above 50km (Long-distance)
-
-
-#### Dispatch Reason
 
 ```{r}
 #| code-summary: "Grouping distance"
@@ -758,57 +750,45 @@ text_close_dispatch <- patient_dist |>
 ```
 
 ```{r}
-#| code-summary: "Dispatch reason (zero)"
+#| code-summary: "Dispatch reason"
+#| label: tbl-dispatch
+#| tbl-cap: "The dispatch reason frequency table for different distance categories. These tables display the top seven common dispatch reasons for each category. The common dispatch reason for zero and medium distances is urgent transfers, while medium to long distances is mental health."
+#| tbl-subcap:
+#|   - "Zero Distance"
+#|   - "Short Distance"
+#|   - "Medium Distance"
+#|   - "Long Distance"
+#| layout-ncol: 2
 #| echo: false
 
 text_close_dispatch |> 
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Zero Distance") 
-```
-
-```{r}
-#| code-summary: "Dispatch reason (short)"
-#| echo: false
+  head(7) |> 
+  knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Short Distance") 
-```
-
-```{r}
-#| code-summary: "Dispatch reason (medium)"
-#| echo: false
+  head(7) |> 
+  knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Medium Distance") 
-```
-
-```{r}
-#| code-summary: "Dispatch reason (long)"
-#| echo: false
+  head(7) |> 
+  knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
   select(dispatch, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Long Distance") 
+  head(7) |> 
+  knitr::kable() 
 ```
-
-
-#### Diagnosis Reason
-
-
 
 ```{r}
 #| code-summary: "Count the diagnosis reason (RACF next to hospital)"
@@ -821,54 +801,46 @@ text_close_diagnosis <- patient_dist |>
 ```
 
 ```{r}
-#| code-summary: "Diagnosis reason (zero)"
+#| code-summary: "Diagnosis reason"
+#| label: tbl-diagnosis
+#| tbl-cap: "The diagnosis frequency table for different distance categories. These tables display the top seven common diagnosis for each category. The common diagnosis for zero and medium distances is pain, while medium to long distances is psychiatric episode."
+#| tbl-subcap:
+#|   - "Zero Distance"
+#|   - "Short Distance"
+#|   - "Medium Distance"
+#|   - "Long Distance"
+#| layout-ncol: 2
 #| echo: false
 
 text_close_diagnosis |> 
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Zero Distance") 
-```
-
-```{r}
-#| code-summary: "Diagnosis reason (short)"
-#| echo: false
+  head(7) |> 
+  knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Short Distance") 
-```
-
-```{r}
-#| code-summary: "Diagnosis reason (medium)"
-#| echo: false
+  head(7) |> 
+  knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Medium Distance") 
-```
-
-```{r}
-#| code-summary: "Diagnosis reason (long)"
-#| echo: false
+  head(7) |> 
+  knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
   select(diagnosis, n) |> 
-  filter(n > quantile(n, probs = 0.9)) |> 
-  knitr::kable(caption ="Long Distance") 
+  head(7) |> 
+  knitr::kable() 
 ```
 
-From the tables, the dispatch and diagnosis reasons seem to point to the same thing, which is that for the shorter distance, the reason seems to be about the injuries that require quick transfer, while the medium to long-distance suggests mental health issues. It is expected that the emergency transfer that requires quick attention should be done quickly.
 
 ### Next step
 
