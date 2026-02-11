@@ -194,7 +194,7 @@ graph_example <- tbl_graph(nodes = nodes_example, edges = edges_example, directe
 #| label: fig-node-filter
 #| layout-ncol: 3
 #| echo: false
-#| fig-cap: "Node filtering"
+#| fig-cap: "An illustration of node filtering, such as can be done in tidygraph. The selection of a node can be made based on variables such as the facility type (RACF or Hospital). When a node gets filtered out, edges incident to it will also disappear."
 #| fig-subcap:
 #|  - "Full network"
 #|  - "Node to remove"
@@ -229,7 +229,7 @@ graph_example |>
 #| label: fig-edge-filter
 #| layout-ncol: 3
 #| echo: false
-#| fig-cap: "Edge filtering"
+#| fig-cap: "An illustration of edge filtering, such as can be done in tidygraph. The selection of an edge can be made based on variables such as the transfer weekend. When an edge gets filtered out, nodes incident to it will still be kept."
 #| fig-subcap:
 #|  - "Full network"
 #|  - "Edges to remove"
@@ -298,7 +298,7 @@ There are many additional methods for sampling. @hu2013survey provides a compreh
 #| layout-ncol: 3
 #| echo: false
 #| message: false
-#| fig-cap: "Edge sampling"
+#| fig-cap: "An illustration of edge-based sampling, such as can be done in tidygraph. The edges set will get sampled, then only include the nodes incident to those edges. This method will be biased towards selecting nodes with higher degrees."
 #| fig-subcap:
 #|  - "Full network"
 #|  - "Sampled edge"
@@ -402,7 +402,7 @@ Visualising multivariate spatio-temporal network data can be challenging. When s
 
 ```{r}
 #| label: fig-static-network
-#| fig-cap: "An ambulance transfer network in Victoria between residential aged care facilities and hospitals."
+#| fig-cap: "An ambulance transfer network in Victoria between residential aged care facilities and hospitals. The nodes are mapped to the spatial location (latitude and longitude), while edges are the connections between nodes. It can be difficult to observe patterns, since most of the nodes are located within the Melbourne area."
 #| code-summary: "Visualisation"
 
 simple_graph |> 
@@ -417,7 +417,7 @@ The main limitation of static network visualisation is the restricted amount of 
 
 ```{r}
 #| label: fig-interact-network
-#| fig-cap: "An interactive ambulance transfer network in Victoria between residential aged care facilities and hospitals."
+#| fig-cap: "An interactive ambulance transfer network in Victoria between residential aged care facilities and hospitals. The extra information added to the nodes is the location name, and for edges, the number of transfers. This information will be visible when hovering over the node or edge. Using interactive makes it easier to explore the network without adding too much information to the plot."
 #| code-summary: "Visualisation"
 interactive_vis <- simple_graph |>
   mutate(name = str_remove(name, "'")) |>
@@ -561,14 +561,14 @@ close <- all_distance |>
   trimws()
 
 patient_dist <- patient_dist |>
-  mutate(check = ifelse(sceneaddress %in% toupper(close), "Close", "Far"))
+  mutate(check = ifelse(sceneaddress %in% toupper(close), "Co-located", "Non co-located"))
 ```
 
 ```{r}
 #| code-summary: "Visualisation"
 #| label: fig-distance-dis-close
 #| echo: false
-#| fig-cap: "An ambulance transfer distance distribution for emergency and scheduled cases in the co-located RACF."
+#| fig-cap: "Histogram of ambulance transfer distances for emergency and scheduled cases grouped by co-located RACF. The median is shown in a vertical blue line, while the first and third quartiles are shown in red. The median transfer distance for the co-located RACF is much higher than that of others."
 patient_dist |>
   group_by(routine, check) |>
   mutate(median = median(distance + 1),
@@ -589,7 +589,7 @@ patient_dist |>
 #| label: fig-racf-close-point
 #| warning: false
 #| echo: false
-#| fig-cap: "The location of the RACF with the co-located RACF highlighted."
+#| fig-cap: "The location of the RACF with the co-located RACF highlighted. The plot shows where all the RACFs are located in Victoria, with the one highlighted as the co-located facility. Most of the co-located facilities are in the regional area, with only a few in the Melbourne area."
 simple_graph |>
   filter(category == "racf") |>
   ggraph(x = long, y = lat) +
@@ -675,7 +675,7 @@ sample_racf <- simple_group_graph |>
 #| echo: false
 #| warning: false
 #| label: fig-group-close-net-spatial
-#| fig-cap: "The sampled co-located RACF transfer network, where the Melbourne hospital is grouped."
+#| fig-cap: "The sampled co-located RACF transfer network, where the Melbourne hospital is grouped. These facilities are placed according to their spatial coordinates (latitude and longitude), with a line representing the transfers and alpha representing the transfer volume. Most patients are sent to Melbourne hospitals."
 simple_group_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
@@ -695,7 +695,7 @@ simple_group_graph |>
 #| code-summary: "Visualisation"
 #| label: fig-group-close-net-free
 #| echo: false
-#| fig-cap: "The sample co-located RACF transfer network, where the Melbourne hospital is grouped on the non-spatial layout."
+#| fig-cap: "The sample co-located RACF transfer network, where the Melbourne hospital is grouped on the non-spatial layout. The nodes are placed based on the stress layout, which helps spread out the nodes. The transfer of the patient from regional RACFs to Melbourne is clearer, and there are two clusters of transfers."
 simple_group_graph |>
   activate(edges) |>
   mutate(from_name = .N()$name[from]) |>
@@ -1135,7 +1135,7 @@ mygantt = function (project, spots = NULL,
 
 ```{r}
 #| label: fig-timeline
-#| fig-cap: "PhD project timeline"
+#| fig-cap: "A Gantt chart of my PhD project timeline. The sub-project name is shown alongside the expected timeline. Project 1 is planned to finish by the end of this year, and Project 2 is planned to finish by the end of next year."
 #| fig-width: 12
 #| fig-height: 5
 #| echo: false
