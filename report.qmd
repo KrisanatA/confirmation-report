@@ -719,9 +719,13 @@ simple_group_graph |>
   scale_color_brewer(palette = "Set1")
 ```
 
-From @fig-group-close-net-spatial and @fig-group-close-net-free, it can be observed that many patients are transferred from regional areas to Melbourne. It explains why the median travel distance is longer, as trips from regional RACFs to Melbourne hospitals cover a greater distance than transfers within Melbourne itself. Following this, transfer reasons, such as dispatch type diagnosis, will be explored. To make comparison and interpretation easier, the transfer distance will be grouped into four categories: zero-distance (co-located facilities), short-distance (between 0 and 10km), medium-distance (between 10km and 50km), and long-distance (above 50km).
+From @fig-group-close-net-spatial, it can be observed that the longer median travel distances shown in @fig-distance-dis-close are caused by the regional RACFs located in the regional area. Using spatial coordinates helps identify this pattern. However, this example also shows why mapping a network directly onto its spatial coordinates may not always be ideal. If the main focus of the plot is to highlight that most patients are transferred to Melbourne hospitals, this is not immediately clear in the spatial visualisation. Longer edges tend to attract more visual attention, and overlapping edges further obscure the transfer patterns.
 
-From the @tbl-dispatch and @tbl-diagnosis, the reasons seem to point to the same thing, which is that for the shorter distance, the reason seems to be about the injuries that require quick transfer, while the medium to long-distance suggests mental health issues. This is expected for the emergency transfer to be travelled over a shorter distance.
+In contrast, @fig-group-close-net-free shows the same network but using a graph-based layout instead. This representation makes the pattern of transfers to Melbourne hospital much clearer, and the two clusters are more distinctly separated. This comparison highlights the importance of choosing between spatial and graph-based layouts.
+
+Extending this to interactive visualisation is not straightforward. In the case of spatial plots, node locations are given in the data, making it easier to add interactivity using functions such as `geom_point_interactive()`. For a graph layout plot, while nodes can be made interactive, the edges are more difficult. It is because the layout positions are calculated internally within `ggraph`, making it challenging to extract and reuse layout information for interactive edges using functions such as `geom_segment_interactive()`.
+
+Following this, transfer reasons, such as dispatch type diagnosis, will be explored. To make comparison and interpretation easier, the transfer distance will be grouped into four categories: zero-distance (co-located facilities), short-distance (between 0 and 10km), medium-distance (between 10km and 50km), and long-distance (above 50km).
 
 
 ```{r}
