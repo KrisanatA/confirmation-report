@@ -112,11 +112,11 @@ Multivariate spatio-temporal network data has space, time, multiple variables, a
 
 Data cleaning is the first stage of a reliable analysis. Spatio-temporal data usually need to be checked for inconsistency of the temporal records, duplicated records, and spatial inaccuracies. Now, adding the network structure on top of that, such as nodes, edges, and their attributes, requires the network topology to be kept throughout the process. Typically, this stage involves tools such as `dplyr` [@dplyr] for manipulating the data, `tsibble` [@tsibble] for validating the temporal inconsistency, `sf` [@sf] for checking the coordinate inaccuracies, and `igraph`/`network` [@igraph; @network] for keeping the network structure.
 
-The `tidygraph` [@tidygraph] package provides a tidy API for graph and network manipulation, where network data is thought of as two tidy tables, one for node and one for edge data. In tidy data [@tidy-data], each variable has its own column, each observation has its own row, and each value has its own cell. These tables are then stored together within a `tbl_graph` object, which preserves the underlying network topology while allowing standard `dplyr` verbs to be applied. The interaction between node and edge tables is done through the use of a special function, `activate()`, which allows the user to switch between the two tables and apply `dplyr` operations such as `mutate()`, `group_by()`, and join operations.
+The `tidygraph` [@tidygraph] package provides a tidy API for graph and network manipulation, where network data is thought of as two tidy tables, one for node and one for edge data. In tidy data [@tidy-data], each variable has its own column, each observation has its own row, and each value has its own cell. These tables are then stored together within a `tbl_graph` object, which preserves the underlying network topology while allowing standard `dplyr` verbs to be applied. The interaction between node and edge tables is done through the use of a special function, `activate()`, which allows the user to switch between the two tables and apply `dplyr` operations such as `mutate()`, `group_by()`, and join operations as shown in @lst-graphcreation.
 
 There are two main functions for creating `tbl_graph` object, `as_tbl_graph()` and `tbl_graph()`. The first function `as_tbl_graph()` takes in a different class of objects, such as `data.frame`, `igraph`, and `network`, then turns it into a `tbl_graph` object. While `tbl_graph()` takes in two `data.frame` objects, one for node and one for edge.
 
-The difference between these two methods is that for the `as_tbl_graph()` function, it only needs the edges dataset, which means that all the multivariate information will only be on edge data and in the node data, it will only have the name (location). For the `tbl_graph()` function, the node variable can be explicitly stated, which can come in handy when there are attributes on the node dataset.
+From the @lst-graphcreation, the difference between these two methods is that for the `as_tbl_graph()` function, it only needs the edges dataset, which means that all the multivariate information will only be on edge data and in the node data, it will only have the name (location). For the `tbl_graph()` function, the node variable can be explicitly stated, which can come in handy when there are attributes on the node dataset.
 
 ```{r}
 #| echo: false
@@ -148,6 +148,8 @@ graph <- tbl_graph(nodes, edges) |>
 
 ```{r}
 #| eval: false
+#| lst-label: lst-graphcreation
+#| lst-cap: "A function for creating a tbl_graph object. There are two main ways: first, using the edge list and second, using node and edge tables. The dplyr function will work normally, like it is on a tibble object, but requires an activate() function to switch between the two tables (node and edge)."
 as_tbl_graph(edges)
 
 tbl_graph(nodes, edges)
@@ -175,8 +177,15 @@ A basic requirement in cleaning temporal network data is the ability to check wh
 
 Data subsetting is used to extract a subset of spatio-temporal network data based on spatial, temporal, and multivariate variables. It includes grouping data by time periods or regions, as well as filtering based on variable values and network characteristics (e.g., in-degree). Subsetting is particularly useful for in-depth analysis, where it may need data from all RACFs within a certain distance of a particular hospital or transfers occurring during the weekends.
 
-In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
+In a network context, filtering operations need to account for topological dependencies between nodes and edges. When nodes are removed based on a condition, all edges incident to those nodes are also deleted (@fig-node-filter). In contrast, when edges are removed, the nodes connected to those edges are preserved, since nodes can exist independently from an edge (@fig-edge-filter). The `tidygraph` supports these subsetting operations through the use of `dplyr` functions such as `filter()` and `select()`, illustrated in @lst-filtering, which are applied separately on nodes and edges while maintaining the condition of the underlying network. Similarly to the data manipulation, users will need to switch between the node and edge tables to subset based on their attributes.
 
+```{r}
+#| lst-label: lst-filtering
+#| lst-cap: "A filtering method in tidygraph, where the activate() function allows the user to switch between the node and edge tables."
+graph |>
+  activate(edges) |>
+  filter(between(year, 2020, 2021))
+```
 
 ```{r}
 #| echo: false
@@ -260,12 +269,6 @@ graph_example |>
   theme(legend.position = "none")
 ```
 
-```{r}
-graph |>
-  activate(edges) |>
-  filter(between(year, 2020, 2021))
-```
-
 
 ### Network Sampling
 
@@ -347,11 +350,13 @@ graph_example |>
   theme(legend.position = "none")
 ```
 
-The `tidygraph` package provides a method for sampling the data for a `tbl_graph` object through a `sample_n()` function, although it is now recommended to use `slice_sample()` instead. A further limitation of the `tbl_graph` is that it does not directly support stratified (i.e., `group_by`) sampling. Instead, the `tbl_graph` object needs to be converted back to `tibble` [@tibble], performing stratified sampling on the node or edge table, and then filtering the original network based on the sampled nodes or edges. This limitation shows that sampling operations for network objects can still be improved.
+The `tidygraph` package provides a method for sampling the data for a `tbl_graph` object through a `sample_n()` function, although it is now recommended to use `slice_sample()` instead. A further limitation of the `tbl_graph` is that it does not directly support stratified (i.e., `group_by`) sampling. Instead, the `tbl_graph` object needs to be converted back to `tibble` [@tibble], performing stratified sampling on the node or edge table, and then filtering the original network based on the sampled nodes or edges (@lst-edgesampling). This limitation shows that sampling operations for network objects can still be improved.
 
 ```{r}
 #| message: false
 #| eval: false
+#| lst-label: lst-edgesampling
+#| lst-cap: "A code comparison between sampling and stratified sampling on edges. The tidygraph supports edge sampling using the sample_n() function, but with stratified sampling, it does not. This makes it much harder to code stratified sampling."
 set.seed(1)
 
 # Edges sampling
