@@ -108,7 +108,7 @@ Studying how infectious diseases spread throughout the network (transfer between
 Multivariate spatio-temporal network data has space, time, multiple variables, associations between different locations (which define the network), and multiple types of relationships (hospital to hospital or aged care to hospital, etc.) As these data become more accessible and complex, understanding their structure and dynamics is key to effective decision-making. A major challenge in analysing this data lies in the sheer amount of information it contains. Most of which is often overlooked due to the difficulty of switching between these dimensions. This infrastructure aims to support the exploration of multivariate spatio-temporal network data. The exploratory data analysis involves several key processes: data storage, cleaning, subsetting, and visualisation. The following section, therefore, reviews existing tools that support these processes and discusses their limitations.
 
 
-### Data Storage and Cleaning
+### Data Storage and Cleaning {#sec-storage}
 
 Data cleaning is the first stage of a reliable analysis. Spatio-temporal data usually need to be checked for inconsistency of the temporal records, duplicated records, and spatial inaccuracies. Now, adding the network structure on top of that, such as nodes, edges, and their attributes, requires the network topology to be kept throughout the process. Typically, this stage involves tools such as `dplyr` [@dplyr] for manipulating the data, `tsibble` [@tsibble] for validating the temporal inconsistency, `sf` [@sf] for checking the coordinate inaccuracies, and `igraph`/`network` [@igraph; @network] for keeping the network structure.
 
@@ -394,7 +394,7 @@ graph |>
 As discussed in @sec-datasubsetting, nodes in a network can exist independently without incident edges. Thus, the edge-based sampling does not automatically remove nodes that become isolated after sampling. To remove these nodes, they must be explicitly removed by filtering the node table using the `node_is_isolated()` function.
 
 
-### Data visualisation
+### Data visualisation {#sec-visualisation}
 
 Data visualisation helps reveal patterns, anomalies and relationships that may not be apparent from numerical summaries alone. Network data is often viewed as connections or flows between nodes/locations, and network-based visualisation allows for easier communication to a broader audience. For a simple network without spatial coordinates, placing nodes and edges in a visualisation requires the use of a graph layout algorithm, such as the Kamada-Kawai layout [@kk]. Depending on the chosen algorithm, the positions of nodes and edges can be different even on the same network dataset. With spatial information, visualising these becomes more straightforward, as longitude and latitude can be used to specify the actual location of the nodes, with edges represented as lines connecting these locations. 
 
@@ -463,7 +463,7 @@ Ambulance and emergency medical services play a critical role in transferring ol
 During the COVID-19 pandemic, government-imposed lockdowns created significant challenges for ambulance services. Previous studies have shown that the pandemic affected the transfer of older individuals from residential aged care facilities to hospitals [@wyer2024impact; @nair2023monitoring; @botan2023pp63]. These restrictions limited ambulance availability and highlighted potential vulnerabilities in the reliance on ambulance transfers for aged care residents. Examining ambulance efficiency and transfer volumes during lockdown periods can inform strategies to improve system resilience and preparedness for future emergencies.
 
 
-### Transfer distance
+### Transfer distance {#sec-transferdist}
 
 To quantify the ambulance transfer, instead of just looking at the number of transfers, the distance travelled from the aged care facilities to the hospital is considered. The Euclidean distance will be used to calculate a transfer distance. It is the shortest distance between two points based on the latitude and longitude. This measure should give a reasonable estimate for less computing compared to the actual road distance. Note that the limitation is that it ignores the actual street network distance, which is not a straight line, and therefore, the distance between the RACF and the hospital will generally be longer.
 
@@ -876,29 +876,6 @@ From the tables, the dispatch and diagnosis reasons seem to point to the same th
   - Consider the implications for policymakers, such as the effects of a hospital shutdown.
 
 
-## Progress Update
-
-### Data cleaning and subsetting
-
-  - Explored multiple network analysis software, including `tidygraph`, `igraph`, and `network` for comparison.
-
-  - Apply the above software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on the temporal data gap that affects total distance travelled calculations.
-
-  - Considering imputation strategies for temporal network data to address missingness.
-
-### Data visualisation
-
-  - Experiment with crosstalk to create linked, side-by-side visualisations combining network and simple descriptive plot.
-
-  - Constructed a supervisor-student relationship network to understand network theory.
-
-  - Explored `ggiraph` for interactive network visualisations.
-
-### Exploratory data analysis
-
-  - Preliminary analysis of the ambulance transfer efficiency
-
-
 # Project 2: Dynamics Infectious Disease Modelling using a Generalised Ambulance Model
 
 ## Part A: Generalised Ambulance Model
@@ -921,14 +898,36 @@ There has also been research using a spatio-temporal point process model to stud
 Infectious disease dynamics describe how the disease is spread and evolves within the population over time. These dynamics depend on the contact between individuals or groups, movement between locations, and the timing of infection and recovery. Traditional compartmental models, such as susceptible-infectious-recovered (SIR) or susceptible-exposed-infectious-recovered (SEIR), are often used to represent the disease progression within and between groups. Through this modelling, policymakers can conduct scenario analyses on the ambulance transfer network. For example, these models can be used to assess how an outbreak evolves if a particular hospital becomes unavailable due to an outbreak and how this disruption affects disease transmission across the system.
 
 Using a simulated network as input to an infectious disease transmission model allows disease spread to occur both within facilities (RACFs and hospitals) and between facilities through ambulance transfers. Similar approaches have been explored in the literature. However, rather than using the simulated network, it uses a point process model to predict demand and then uses this output as input to an infectious disease model [@amaral2023spatio].
-
-
-## Progress Update
-
-  - Try a statistical network model such as `ergm` and `intergraph` for switching between `igraph` and `network`
   
   
 # Timeline
+
+## Progress Update
+
+### Project 1A) Data cleaning and subsetting
+
+  - Explored multiple network analysis software, including `tidygraph`, `igraph`, and `network` for comparison (@sec-storage).
+
+  - Apply the above software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on the temporal data gap that affects total distance travelled calculations.
+
+  - Considering imputation strategies for temporal network data to address missingness (@sec-storage).
+
+### Project 1A) Data visualisation
+
+  - Experiment with crosstalk to create linked, side-by-side visualisations combining network and simple descriptive plot.
+
+  - Constructed a supervisor-student relationship network to understand network theory.
+
+  - Explored `ggiraph` for interactive network visualisations (@sec-visualisation).
+
+### Project 1B) Exploratory data analysis
+
+  - Preliminary analysis of the ambulance transfer efficiency (@sec-transferdist)
+  
+### Project 2A) 
+
+  - Try a statistical network model such as `ergm` and `intergraph` for switching between `igraph` and `network`
+  
 
 ```{r}
 #| echo: false
