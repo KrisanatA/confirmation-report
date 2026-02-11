@@ -454,11 +454,15 @@ girafe(ggobj = interactive_vis,
 The `ggiraph` package [@ggiraph] provides an interactive element to the visualisation through the `ggplot2` extension. Creating interactive network visualisations, therefore, typically requires combining `ggraph` for layout construction with `ggiraph` for interactivity. Getting this to work together requires an insight into how `ggraph` works, which is not a seamless implementation. For example, `ggraph` provides `geom_node_*` and `geom_edge_*` functions for nodes and edges geometry, respectively, but these do not natively support interactivity. To make nodes interactive, `geom_point_interactive()` needs to be used instead of `geom_node_point()`. Making edges interactive is more complex as it requires the use of `geom_segment_interactive()` and mapping the start and end coordinates (`x`, `y`, `xend`, `yend`) for each edge. By that point, if both node and edge need interactivity, then `ggraph` is not needed, and instead the node and edge can be treated as a different dataset and implement geom_point and geom_segment for drawing the node and edge.
 
 
-### Conclusion
+### Next steps
 
-Current tools, such as `tidygraph`, have several limitations that are important for exploratory data analysis. First, temporal data are not easy to clean within `tidygraph`, and there is no direct support for filtering temporal networks. As a result, issues such as filling missing timestamps and inconsistent time periods are currently handled outside the network context, which may affect the network's validity. Second, support for the data sampling method is limited, with most methods working outside of the `tidygraph` object. Finally, visualisation capabilities are constrained by the `ggraph` package, as layout calculations are handled internally, making it difficult to access and reuse layout information for expanding the visualisation method. 
+  - I will be creating a new data object and turning it into an R package.
 
-To address these limitations, I will be creating a new data object. For temporal information, this object will integrate temporal and network topology jointly. Rather than converting an `igraph` to a `tibble` object, it will be built on top of a `tibble` object, allowing full compatibility with other tools. Additionally, the object will be designed to work with the `ggplot2` package for better expansion and application of other methods for network visualisation.
+  - The temporal data are not easy to clean currently with `tidygraph`. As a result, issues such as filling missing timestamps and handling inconsistent time periods are currently handled outside the network context, which may affect the network's validity. Therefore, the new data object needs to integrate temporal and network topology jointly.
+
+  - The current data sampling method is limited, with most methods working outside the `tidygraph` object. Although many tools already work with `tibble`, its functionality requires writing a method for `tbl_graph` because `tidygraph` converts `igraph` into `tibble`. Therefore, the new data object should be built on top of tibble.
+
+  - Data visualisation capabilities are constrained by the `ggraph` package, as layout calculations are handled internally, making it difficult to access and reuse layout information when extending the visualisation method (e.g., interactive visualisation). Therefore, the new data object will be designed to work directly with the `ggplot2` package for better expansion and application of additional geoms for network visualisation.
 
 
 ## Part B: An Exploratory Analysis of Ambulance Transfer in Victoria
