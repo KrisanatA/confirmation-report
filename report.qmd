@@ -1154,7 +1154,8 @@ mygantt = function (project, spots = NULL,
 prj1_data <- tribble(
   ~activity, ~start_date, ~end_date,
   "Review current tools", 1, 12,
-  "Developing network EDA infrastructure", 13, 24,
+  "Developing network EDA infrastructure", 13, 15,
+  "R package: new data object", 16, 24,
   "Ambulance network exploration", 13, 21) |> 
   mutate(wp = "Project 1")
 
@@ -1162,7 +1163,7 @@ prj2_data <- tribble(
   ~activity, ~start_date, ~end_date,
   "Generalise ambulance model", 22, 27,
   "Dynamics infectious disease modelling", 28, 36,
-  "Tidy tools for IDM", 22, 36) |> 
+  "R package: Tidy tools for IDM", 22, 36) |> 
   mutate(wp = "Project 2")
 
 thesis_data <- tribble(
