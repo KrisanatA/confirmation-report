@@ -865,17 +865,13 @@ text_close_diagnosis |>
 
 ## Part A: Generalised Ambulance Model
 
-This project focuses on understanding the impact of any changes in the ambulance transfer network on the spread of infectious diseases, particularly among older populations in residential aged care facilities. Ambulance transfer creates a way in which infections can be transmitted throughout facilities and hospitals [@gruber2013multidrug]. Variations in transfer volume, patterns, or constraints can alter the structure of the network and, in turn, influence outbreak dynamics.
+This project focuses on understanding the impact of any changes in the ambulance transfer network on the spread of infectious diseases, particularly among older populations in residential aged care facilities. Ambulance transfer creates a way in which infections can be transmitted throughout facilites and hospitals [@gruber2013multidrug]. Variations in transfer volume, patterns, or constraints can alter the structure of the network and, in turn, influence outbreak dynamics.
 
-### Statistical Network Models Review
-
-There is a wide range of statistical network models, and the choice of model depends on the specific application. In infectious disease research, understanding the underlying contact network is therefore particularly important [@silk2017application].
+There has been research using a spatio-temporal point process model to study ambulance demand rather than modelling the network structure. However, such work has primarily focused on ambulance deployment planning rather than transmission or transfer networks [@zhou2015spatio]. Since the main analysis is to examine the transfer patterns, models such as this do not adequately represent the connections between facilities, but instead focus on predicting demand over the area. Understanding the underlying contact network is therefore what is needed for studying the transfer network connections [@silk2017application]. There is a wide range of statistical network models available for studying, and these are potential models to look at.
 
   - **Exponential Random Graph Model (ERGM):** An ERGM is used to study the structure of network data by modelling the probability of observing a given network as a function of network structure and the characteristics of individuals (nodes) within the network [@robins2007introduction]. An advantage of ERGM is their ability to include individual traits (e.g., sex and age), which can be used to explain connection patterns and the likelihood of interacting with similar individuals. A limitation of the model is its lack of flexibility in specifying interaction terms, which is possible but not straightforward. ERGM can be fitted using the `ergm` R package [@ergm]. For dynamic networks, temporal extensions such as the temporal exponential random graph model can be fitted using the `btergm` package [@btergm].
 
   - **Latent Space Model:** Latent space models provide an alternative method to ERGMs for modelling relational data. These models basically work like generalised linear models for edge values, while controlling for the network dependence by placing nodes in k-dimensional space according to their social network distance [@hoff2002latent; @krivitsky2009representing]. The advantage of this model is its simpler implementation and fitting compared to ERGMs. However, interpretation of model coefficients can be challenging if the position of nodes in latent space covaries with values of nodal attributes [@cranmer2017navigating]. Latent space model can be fitted using the `latentnet` package [@krivitsky2008fitting].
-
-There has also been research using a spatio-temporal point process model to study ambulance demand rather than modelling the network structure. However, such work has primarily focused on ambulance deployment planning rather than transmission or transfer networks [@zhou2015spatio].
 
 
 ## Part B: Dynamics Infectious Disease Modelling
