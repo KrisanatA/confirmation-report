@@ -846,19 +846,19 @@ text_close_diagnosis |>
 ```
 
 
-### Next step
+### Next steps
 
-  - Use actual road network distances to get more accurate travel measurements.
+  - Add road distance to the dataset as an additional distance comparison. Also, including an indicator for aerial transfers can be helpful since aerial transport typically takes less time to transfer the patient to the hospital.
 
-  - Conduct a more in-depth analysis of differences between emergency and scheduled transfers.
+  - Conduct a more in-depth analysis of the differences between emergency and scheduled transfers. The initial result (@fig-distance-dis) shows that there is not much difference between emergency and scheduled in terms of descriptive statistics and distribution. Further analysis would help to see if there are potential confounding variables.
 
-  - Analyse the potential overuse of ambulance callouts.
+  - Analyse the potential overuse of ambulance callouts. Ideally, the resources should not be overused in non-emergency situations, identifying potential overuse would allow for better resource allocation when needed (e.g., emergency state).
 
-  - Examine the temporal patterns, such as peak demand for transfers.
+  - Examine the temporal patterns, such as peak demand for transfers. It would help inform policymakers about when additional ambulance resources are needed to prevent a system shortage.
 
-  - Assess the impact of COVID-19 on transfer patterns
+  - Assess the impact of COVID-19 on transfer patterns. Understanding how COVID-19 affected the system would support future planning in the event of another pandemic or disruption.
 
-  - Consider the implications for policymakers, such as the effects of a hospital shutdown.
+  - Consider the implications for policymakers, such as the effects of a hospital shutdown. During the disease outbreaks, some hospitals may need to reserve their resources for specific cases, or the hospital is at full capacity. Understanding how this affects the transfer network would be useful for planning.
 
 
 # Project 2: Dynamics Infectious Disease Modelling using a Generalised Ambulance Model
