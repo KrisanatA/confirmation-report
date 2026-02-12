@@ -904,7 +904,7 @@ Using a simulated network as input to an infectious disease transmission model a
 
 ### Project 1A) Data cleaning and subsetting
 
-  - I have explored multiple network analysis software, including `tidygraph`, `igraph` and `network` for comparison (@sec-storage). This helps identify the limitations of the current tools and what is needed in the new data object.
+  - I have explored multiple network analysis software, including `tidygraph`, `igraph` and `network` for comparison (@sec-storage). This helps identify the limitations of the current tools and what is needed in the new data object along with its functionality.
 
   - I have applied the above software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on the temporal pattern. It helps see that the limitations of the `tidygraph` are its lack of support for temporal variables. It leads to considering an imputation strategy for temporal network data since there are many time gaps (@sec-storage) in the Caribou dataset that might affect the distance analysis.
 
@@ -919,7 +919,7 @@ Using a simulated network as input to an infectious disease transmission model a
 
 ### Project 1B) Exploratory data analysis
 
-  - I did the preliminary analysis of the ambulance transfer efficiency (@sec-transferdist). This would help inform the development of the new data object package.
+  - I did the preliminary analysis of the ambulance transfer efficiency (@sec-transferdist). This would help inform the development of the new data object and its functionality package.
   
 ### Project 2A) 
 
@@ -1143,7 +1143,7 @@ prj1_data <- tribble(
   ~activity, ~start_date, ~end_date,
   "Review current tools", 1, 12,
   "Developing network EDA infrastructure", 13, 15,
-  "R package: new data object", 16, 24,
+  "R package: new data object and functionality", 16, 24,
   "Ambulance network exploration", 13, 21) |> 
   mutate(wp = "Project 1")
 
