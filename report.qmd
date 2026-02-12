@@ -475,7 +475,7 @@ The `ggiraph` package [@ggiraph] provides an interactive element to the visualis
 
 ## Part B: An Exploratory Analysis of Ambulance Transfer in Victoria
 
-Ambulance and emergency medical services play a critical role in transferring older individuals from residential aged care facilities (RACFs) to hospitals. These transfers form a links between RACFs and hospitals across space and time, and are associated with multiple variable such as age, sex, and reason of transfer. Exploratory analysis provides an initial step in examining ambulance transfer data by reveling pattern, anomalies, and relationships. This data can be represented as a multivariate spatio-temporal network, where facilities are represented as nodes and ambulance transfers as time-varying edges.
+Ambulance and emergency medical services play a critical role in transferring older individuals from residential aged care facilities (RACFs) to hospitals. These transfers form links between RACFs and hospitals across space and time, and are associated with multiple variables such as age, sex, and reason of transfer. Exploratory analysis provides an initial step in examining ambulance transfer data by revealing patterns, anomalies, and relationships. This data can be represented as a multivariate spatio-temporal network, where facilities are represented as nodes and ambulance transfers as time-varying edges.
 
 During the COVID-19 pandemic, government-imposed lockdowns created significant challenges for ambulance services. Previous studies have shown that the pandemic affected the transfer of older individuals from residential aged care facilities to hospitals [@wyer2024impact; @nair2023monitoring; @botan2023pp63]. These restrictions limited ambulance availability and highlighted potential vulnerabilities in the reliance on ambulance transfers for aged care residents. Examining ambulance efficiency and transfer volumes during lockdown periods can inform strategies to improve system resilience and preparedness for future emergencies.
 
@@ -885,7 +885,7 @@ text_close_diagnosis |>
 
 ## Part A: Generalised Ambulance Model
 
-This project focuses on understanding the impact of any changes in the ambulance transfer network on the spread of infectious diseases, particularly among older populations in residential aged care facilities. Ambulance transfer creates a way in which infections can be transmitted throughout facilites and hospitals [@gruber2013multidrug]. Variations in transfer volume, patterns, or constraints can alter the structure of the network and, in turn, influence outbreak dynamics.
+This project focuses on understanding the impact of any changes in the ambulance transfer network on the spread of infectious diseases, particularly among older populations in residential aged care facilities. Ambulance transfer creates a way in which infections can be transmitted throughout facilities and hospitals [@gruber2013multidrug]. Variations in transfer volume, patterns, or constraints can alter the structure of the network and, in turn, influence outbreak dynamics.
 
 There has been research using a spatio-temporal point process model to study ambulance demand rather than modelling the network structure. However, such work has primarily focused on ambulance deployment planning rather than transmission or transfer networks [@zhou2015spatio]. Since the main analysis is to examine the transfer patterns, models such as this do not adequately represent the connections between facilities, but instead focus on predicting demand over the area. Understanding the underlying contact network is therefore what is needed for studying the transfer network connections [@silk2017application]. There is a wide range of statistical network models available for studying, and these are potential models to look at.
 
@@ -909,7 +909,7 @@ Using a simulated network as input to an infectious disease transmission model a
 
 ### Project 1A) Data cleaning and subsetting
 
-  - I have explored multiple network analysis software, including `tidygraph`, `igraph` and `network` for comparison (@sec-storage). This helps identify the limitations of the current tools and what is needed in the new data object along with its functionality.
+  - I have explored multiple network analysis software, including `tidygraph`, `igraph` and `network` for comparison (@sec-storage). This helps identify the limitations of the current tools and what is needed for the new data object and its functionality.
 
   - I have applied the above software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on the temporal pattern. It helps see that the limitations of the `tidygraph` are its lack of support for temporal variables. It leads to considering an imputation strategy for temporal network data since there are many time gaps (@sec-storage) in the Caribou dataset that might affect the distance analysis.
 
@@ -1029,7 +1029,7 @@ The following is a list of conferences that I will be targeting to attend and sh
   
 # Reproducibility
 
-This confirmation is in the following [repositories](checkfirst). I am commit to using GitHub version control and quarto (with R) for reproducible research. 
+This confirmation is in the following [repositories](checkfirst). I am committed to using GitHub version control and Quarto (with R) for reproducible research. 
 
 
 ---
