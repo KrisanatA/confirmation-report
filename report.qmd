@@ -1170,7 +1170,8 @@ mygantt(prj_data,
 ## Planned conferences
  
 The following is a list of conferences that I will be targeting to attend and showcase the work.
+
+  - useR! Conference (2027): I am planning to present the work on my data object and functionality package at the conference. It will help me get some feedback as well as network with other researchers on R tools.
  
-  - ANZIAM Conference (Feburary 2027)
+  - ANZIAM Conference (February 2028): I am planning to present the work on my Project 2, which is about the dynamics of infectious disease modelling, to receive feedback and networking with other researchers in the infectious disease discipline.
   
-  - useR! Conference (2027)
