@@ -310,8 +310,8 @@ set.seed(1)
 
 graph_example |> 
   ggraph(x = x, y = y) + 
-  geom_edge_fan() +
-  geom_node_point(size = 10, color = "blue")
+  geom_edge_fan(strength = 1.4) +
+  geom_node_point(size = 10)
 
 sample <- graph_example |> 
   activate(edges) |> 
@@ -331,10 +331,9 @@ graph_example |>
   activate(nodes) |> 
   mutate(check = as.factor(ifelse(name %in% node_list, 1, 0))) |> 
   ggraph(x = x, y = y) +
-  geom_edge_fan(aes(color = check)) +
-  geom_node_point(aes(color = check), size = 10) +
-  scale_color_manual(values = c("red", "blue")) +
-  scale_edge_color_manual(values = c("red", "blue")) +
+  geom_edge_fan(aes(color = check), strength = 1.4) +
+  geom_node_point(color = "black", size = 10) +
+  scale_edge_color_manual(values = c("black", "blue")) +
   theme(legend.position = "none")
 
 graph_example |> 
@@ -343,7 +342,7 @@ graph_example |>
   activate(nodes) |> 
   mutate(check = as.factor(ifelse(name %in% node_list, 1, 0))) |> 
   ggraph(x = x, y = y) +
-  geom_edge_fan(aes(color = check)) +
+  geom_edge_fan(aes(color = check), strength = 1.4) +
   geom_node_point(aes(color = check), size = 10) +
   scale_color_manual(values = c("white", "blue")) +
   scale_edge_color_manual(values = c("white", "blue")) +
