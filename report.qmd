@@ -423,13 +423,18 @@ The main limitation of static network visualisation is the restricted amount of 
 ```{r}
 #| label: fig-interact-network
 #| fig-cap: "An interactive ambulance transfer network in Victoria between residential aged care facilities and hospitals. The extra information added to the nodes is the location name, and for edges, the number of transfers. This information will be visible when hovering over the node or edge. Using interactive makes it easier to explore the network without adding too much information to the plot."
+#| lst-label: lst-interactivevis
+#| lst-cap: "Code for creating an interactive network visualisation. Instead of using the ggraph function, such as geom_node_point() and geom_edge_line, geom_point_interactive and geom_segment_interactive are used. The implementation is more complex than necessary because the layout information is not easily accessible."
 #| code-summary: "Visualisation"
 interactive_vis <- simple_graph |>
   mutate(name = str_remove(name, "'")) |>
   ggraph(x = long, y = lat) +
   geom_sf(data = vic_map, color = "white") +
   geom_segment_interactive(
-    data = simple_graph |> activate(edges) |> as_tibble() |> mutate(id = row_number()),
+    data = simple_graph |> 
+      activate(edges) |> 
+      as_tibble() |> 
+      mutate(id = row_number()),
     alpha = 0.2,
     aes(x = long_racf,
         y = lat_racf,
@@ -446,12 +451,14 @@ interactive_vis <- simple_graph |>
 
 girafe(ggobj = interactive_vis,
        options = list(
-         opts_hover(css = "fill:lightblue;stroke:grey;stroke-width:0.5px"),
+         opts_hover(
+           css = "fill:lightblue;stroke:grey;stroke-width:0.5px"
+           ),
          opts_zoom(min = 0.5, max = 3)
        ))
 ```
 
-The `ggiraph` package [@ggiraph] provides an interactive element to the visualisation through the `ggplot2` extension. Creating interactive network visualisations, therefore, typically requires combining `ggraph` for layout construction with `ggiraph` for interactivity. Getting this to work together requires an insight into how `ggraph` works, which is not a seamless implementation. For example, `ggraph` provides `geom_node_*` and `geom_edge_*` functions for nodes and edges geometry, respectively, but these do not natively support interactivity. To make nodes interactive, `geom_point_interactive()` needs to be used instead of `geom_node_point()`. Making edges interactive is more complex as it requires the use of `geom_segment_interactive()` and mapping the start and end coordinates (`x`, `y`, `xend`, `yend`) for each edge. By that point, if both node and edge need interactivity, then `ggraph` is not needed, and instead the node and edge can be treated as a different dataset and implement geom_point and geom_segment for drawing the node and edge.
+The `ggiraph` package [@ggiraph] provides an interactive element to the visualisation through the `ggplot2` extension. Creating interactive network visualisations, therefore, typically requires combining `ggraph` for layout construction with `ggiraph` for interactivity. Getting this to work together requires an insight into how `ggraph` works, which is not a seamless implementation. For example, `ggraph` provides `geom_node_*` and `geom_edge_*` functions for nodes and edges geometry, respectively, but these do not natively support interactivity. To make nodes interactive, `geom_point_interactive()` needs to be used instead of `geom_node_point()`. Making edges interactive is more complex as it requires the use of `geom_segment_interactive()` and mapping the start and end coordinates (`x`, `y`, `xend`, `yend`) for each edge (@lst-interactivevis). By that point, if both node and edge need interactivity, then `ggraph` is not needed, and instead the node and edge can be treated as a different dataset and implement geom_point and geom_segment for drawing the node and edge.
 
 
 ### Next steps
@@ -866,6 +873,8 @@ text_close_diagnosis |>
 
   - Consider the implications for policymakers, such as the effects of a hospital shutdown. During the disease outbreaks, some hospitals may need to reserve their resources for specific cases, or the hospital is at full capacity. Understanding how this affects the transfer network would be useful for planning.
 
+  - The work of Part B will help inform the development of the new data package, as well as applying the new package to the analysis. The analysis of the COVID-19 impact on the ambulance transfers will be turned into a publishable paper.
+
 
 # Project 2: Dynamics Infectious Disease Modelling using a Generalised Ambulance Model
 
@@ -880,7 +889,7 @@ There has been research using a spatio-temporal point process model to study amb
   - **Latent Space Model:** Latent space models provide an alternative method to ERGMs for modelling relational data. These models basically work like generalised linear models for edge values, while controlling for the network dependence by placing nodes in k-dimensional space according to their social network distance [@hoff2002latent; @krivitsky2009representing]. The advantage of this model is its simpler implementation and fitting compared to ERGMs. However, interpretation of model coefficients can be challenging if the position of nodes in latent space covaries with values of nodal attributes [@cranmer2017navigating]. Latent space model can be fitted using the `latentnet` package [@krivitsky2008fitting].
 
 
-## Part B: Dynamics Infectious Disease Modelling
+## Part B: Dynamics of Infectious Disease Modelling
 
 Antimicrobial resistance (AMR) poses a significant threat to our health. Several studies show that nursing homes or long-term care facilities are considered an important breeding ground for AMR [@tandan2022impact; @strausbaugh1996antimicrobial; @john1991antibiotic]. Therefore, RACFs act as important reservoirs for AMR, creating a concern for the broader healthcare system. Transfers of patients through ambulance between RACFs and hospitals create the pathways for these resistant organisms to spread around the system. Understanding patient movement patterns and characterising the spread is therefore essential for monitoring and controlling the transmission. 
 
