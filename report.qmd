@@ -889,28 +889,27 @@ Using a simulated network as input to an infectious disease transmission model a
 
 ### Project 1A) Data cleaning and subsetting
 
-  - Explored multiple network analysis software, including `tidygraph`, `igraph`, and `network` for comparison (@sec-storage).
+  - I have explored multiple network analysis software, including `tidygraph`, `igraph` and `network` for comparison (@sec-storage). This helps identify the limitations of the current tools and what is needed in the new data object.
 
-  - Apply the above software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on the temporal data gap that affects total distance travelled calculations.
-
-  - Considering imputation strategies for temporal network data to address missingness (@sec-storage).
+  - I have applied the above software on [Caribou dataset](https://github.com/rfordatascience/tidytuesday/blob/main/data/2020/2020-06-23/readme.md), with the main focus on the temporal pattern. It helps see that the limitations of the `tidygraph` are its lack of support for temporal variables. It leads to considering an imputation strategy for temporal network data since there are many time gaps (@sec-storage) in the Caribou dataset that might affect the distance analysis.
 
 ### Project 1A) Data visualisation
 
-  - Experiment with crosstalk to create linked, side-by-side visualisations combining network and simple descriptive plot.
+  - I have experimented with crosstalk to create linked, side-by-side visualisations to combine a network and a simple descriptive plot. However, this will not be used going forward.
 
-  - Constructed a supervisor-student relationship network to understand network theory.
+  - I constructed a supervisor-student relationship network as part of learning about network theory. This dataset is helpful since there are no strict spatial coordinates, thus, experiment with graph layout for placing the nodes.
 
-  - Explored `ggiraph` for interactive network visualisations (@sec-visualisation).
+  - I explored `ggiraph` for interactive network visualisation (@sec-visualisation). When drawing a large network, the amount of information shown on the plot can be limited, therefore, looking at alternatives such as interactivity to add more information to the visualisation.
+
 
 ### Project 1B) Exploratory data analysis
 
-  - Preliminary analysis of the ambulance transfer efficiency (@sec-transferdist)
+  - I did the preliminary analysis of the ambulance transfer efficiency (@sec-transferdist). This would help inform the development of the new data object package.
   
 ### Project 2A) 
 
-  - Try a statistical network model such as `ergm` and `intergraph` for switching between `igraph` and `network`
-  
+  - I try a statistical network model, such as `ergm` and `intergraph` for switching between `igraph` and `network` objects. It helps inform what the research gaps are in terms of statistical modelling with network data.
+
 
 ```{r}
 #| echo: false
