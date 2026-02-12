@@ -1027,9 +1027,11 @@ The following is a list of conferences that I will be targeting to attend and sh
   - Complete the two PhD compulsory units successfully, ETX6500: Statistical inference and ETX6510: Foundations of econometrics.
   
   
-# Reproducibility
+# Acknowledgements
 
-This confirmation is in the following [repositories](checkfirst). I am committed to using GitHub version control and Quarto (with R) for reproducible research. 
+This confirmation is in the following [repositories](checkfirst). I am committed to using GitHub version control and Quarto (with R) for reproducible research. It should be noted that the full data is private, which impacts the reproducibility of this report. This research has been approved by the Alfred Health Ethics Commitee, Local reference number 591/18.
+
+I also acknowledge the use of ChatGPT (https://chat.openai.com/) and Grammarly to improve the text, grammar, and spelling.
 
 
 ---
