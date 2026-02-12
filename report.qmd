@@ -26,15 +26,12 @@ library(sf)
 library(ggiraph)
 library(tsibble)
 library(gghighlight)
-library(ggthemes)
 
 theme_set(
   theme_minimal()
 )
 
 options(scipen = 999)
-
-pal_colorblind <- colorblind_pal()(8)[2:8]
 ```
 
 ```{r}
@@ -930,6 +927,8 @@ Using a simulated network as input to an infectious disease transmission model a
   - I try a statistical network model, such as `ergm` and `intergraph` for switching between `igraph` and `network` objects. It helps inform what the research gaps are in terms of statistical modelling with network data.
 
 
+## Timeline
+
 ```{r}
 #| label: fig-timeline
 #| fig-cap: "A Gantt chart of my PhD project timeline. The sub-project name is shown alongside the expected timeline. Project 1 is planned to finish by the end of this year, and Project 2 is planned to finish by the end of next year."
@@ -1007,3 +1006,27 @@ The following is a list of conferences that I will be targeting to attend and sh
  
   - ANZIAM Conference (February 2028): I am planning to present the work on my Project 2, which is about the dynamics of infectious disease modelling, to receive feedback and networking with other researchers in the infectious disease discipline.
   
+
+## Other activities
+
+  - I have been co-hosting the Hacky Hour session with Janith over the last year. The Hacky Hour is a weekly session to share and foster knowledge on research software development. I plan to keep running the Hacky Hour session this year as well.
+  
+  - I was a Volunteer lead on the WOMBAT2025, helping with anything needed on the workshop day.
+  
+  - I run a tutorial/workshop with Jayani and Janith on reproducible research in WOMBAT2025 and as part of the NUMBAT workshops. The tutorial introduces Quarto for creating reproducible reporting, academic documents and presentations.
+  
+  - Tutoring two units, ETC5512: Wild caught data and ETC5521: Diving deeply into data exploration.
+  
+  - Complete the two PhD compulsory units successfully, ETX6500: Statistical inference and ETX6510: Foundations of econometrics.
+  
+  
+# Reproducibility
+
+This confirmation is in the following [repositories](checkfirst). I am commit to using GitHub version control and quarto (with R) for reproducible research. 
+
+
+---
+nocite: |
+  @gghighlight
+---
+
