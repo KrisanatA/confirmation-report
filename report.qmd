@@ -5,6 +5,7 @@ author: "Krisanat Anukarnsakulchularp"
 format: 
   html:
     toc: true
+css: "styles.css"
 bibliography: report.bib
 ---
 
@@ -749,7 +750,10 @@ text_close_dispatch <- patient_dist |>
   st_drop_geometry() |> 
   filter(sceneaddress %in% toupper(close),
          routine == "Emergency") |> 
-  count(distance_cat, dispatch)
+  count(distance_cat, dispatch) |> 
+  group_by(distance_cat) |> 
+  mutate(proportion = round(n/sum(n), 2)) |> 
+  ungroup()
 ```
 
 ```{r}
@@ -767,28 +771,28 @@ text_close_dispatch <- patient_dist |>
 text_close_dispatch |> 
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
-  select(dispatch, n) |> 
+  select(dispatch, proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
-  select(dispatch, n) |> 
+  select(dispatch, proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
-  select(dispatch, n) |> 
+  select(dispatch, proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
-  select(dispatch, n) |> 
+  select(dispatch, proportion) |> 
   head(7) |> 
   knitr::kable() 
 ```
@@ -800,7 +804,10 @@ text_close_diagnosis <- patient_dist |>
   st_drop_geometry() |> 
   filter(sceneaddress %in% toupper(close),
          routine == "Emergency") |> 
-  count(distance_cat, diagnosis)
+  count(distance_cat, diagnosis) |> 
+  group_by(distance_cat) |> 
+  mutate(proportion = round(n/sum(n), 2)) |> 
+  ungroup()
 ```
 
 ```{r}
@@ -818,28 +825,28 @@ text_close_diagnosis <- patient_dist |>
 text_close_diagnosis |> 
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
-  select(diagnosis, n) |> 
+  select(diagnosis, proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
-  select(diagnosis, n) |> 
+  select(diagnosis, proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
-  select(diagnosis, n) |> 
+  select(diagnosis, proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
-  select(diagnosis, n) |> 
+  select(diagnosis, proportion) |> 
   head(7) |> 
   knitr::kable() 
 ```
