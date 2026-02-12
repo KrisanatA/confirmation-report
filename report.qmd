@@ -876,7 +876,7 @@ text_close_diagnosis |>
   - The work of Part B will help inform the development of the new data package, as well as applying the new package to the analysis. The analysis of the COVID-19 impact on the ambulance transfers will be turned into a publishable paper.
 
 
-# Project 2: Dynamics Infectious Disease Modelling using a Generalised Ambulance Model
+# Project 2: Dynamics of Infectious Disease Modelling using a Generalised Ambulance Model
 
 ## Part A: Generalised Ambulance Model
 
