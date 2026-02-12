@@ -761,13 +761,15 @@ text_close_dispatch <- patient_dist |>
   count(distance_cat, dispatch) |> 
   group_by(distance_cat) |> 
   mutate(proportion = round(n/sum(n), 2)) |> 
-  ungroup()
+  ungroup() |>
+  rename(Dispatch = dispatch,
+         Proportion = proportion)
 ```
 
 ```{r}
 #| code-summary: "Dispatch reason"
 #| label: tbl-dispatch
-#| tbl-cap: "The dispatch reason frequency table for different distance categories. These tables display the top seven common dispatch reasons for each category. The common dispatch reason for zero and medium distances is urgent transfers, while medium to long distances is mental health."
+#| tbl-cap: "The dispatch reason proportion table for different distance categories. These tables display the top seven common dispatch reasons for each category. The common dispatch reason for zero and medium distances is urgent transfers, while medium to long distances is mental health."
 #| tbl-subcap:
 #|   - "Zero Distance"
 #|   - "Short Distance"
@@ -779,28 +781,28 @@ text_close_dispatch <- patient_dist |>
 text_close_dispatch |> 
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
-  select(dispatch, proportion) |> 
+  select(Dispatch, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
-  select(dispatch, proportion) |> 
+  select(Dispatch, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
-  select(dispatch, proportion) |> 
+  select(Dispatch, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_dispatch |> 
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
-  select(dispatch, proportion) |> 
+  select(Dispatch, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 ```
@@ -815,13 +817,15 @@ text_close_diagnosis <- patient_dist |>
   count(distance_cat, diagnosis) |> 
   group_by(distance_cat) |> 
   mutate(proportion = round(n/sum(n), 2)) |> 
-  ungroup()
+  ungroup() |>
+  rename(Diagnosis = diagnosis,
+         Proportion = proportion)
 ```
 
 ```{r}
 #| code-summary: "Diagnosis reason"
 #| label: tbl-diagnosis
-#| tbl-cap: "The diagnosis frequency table for different distance categories. These tables display the top seven common diagnosis for each category. The common diagnosis for zero and medium distances is pain, while medium to long distances is psychiatric episode."
+#| tbl-cap: "The diagnosis reason proportion table for different distance categories. These tables display the top seven common diagnosis for each category. The common diagnosis for zero and medium distances is pain, while for medium to long distances is a psychiatric episode."
 #| tbl-subcap:
 #|   - "Zero Distance"
 #|   - "Short Distance"
@@ -833,28 +837,28 @@ text_close_diagnosis <- patient_dist |>
 text_close_diagnosis |> 
   filter(distance_cat == "Zero") |> 
   arrange(-n) |> 
-  select(diagnosis, proportion) |> 
+  select(Diagnosis, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Short-distance") |> 
   arrange(-n) |> 
-  select(diagnosis, proportion) |> 
+  select(Diagnosis, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Medium-distance") |> 
   arrange(-n) |> 
-  select(diagnosis, proportion) |> 
+  select(Diagnosis, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 
 text_close_diagnosis |> 
   filter(distance_cat == "Long-distance") |> 
   arrange(-n) |> 
-  select(diagnosis, proportion) |> 
+  select(Diagnosis, Proportion) |> 
   head(7) |> 
   knitr::kable() 
 ```
