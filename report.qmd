@@ -1,7 +1,9 @@
 ---
 title: "Visual methods for exploring multivariate spatio-temporal networks with application to health transport"
 subtitle: "Confirmation Report"
-author: "Krisanat Anukarnsakulchularp"
+author: 
+  - "Krisanat Anukarnsakulchularp"
+  - "Advisors: Dr. Michael Lydeamore and Prof. Dianne Cook"
 format: 
   html:
     toc: true
