@@ -8,6 +8,8 @@ format:
   html:
     toc: true
     embed-resources: true
+  pdf:
+    toc: false
 css: "styles.css"
 bibliography: report.bib
 ---
@@ -88,6 +90,8 @@ simple_graph <- transfers |>
   left_join(full_location, by = "name") |>
   mutate(category = ifelse(name %in% transfers$sceneaddress, "racf", "hospital"))
 ```
+
+**This document contains an interactive element (Fig. 5). For the online version of this report, please visit the following link [https://krisanata-confirmation-report.netlify.app/](https://krisanata-confirmation-report.netlify.app/)**
 
 # Background {#sec-background}
 
@@ -776,7 +780,7 @@ text_close_dispatch <- patient_dist |>
 #|   - "Short Distance"
 #|   - "Medium Distance"
 #|   - "Long Distance"
-#| layout-ncol: 2
+#| layout-ncol: 1
 #| echo: false
 
 text_close_dispatch |> 
@@ -1034,9 +1038,11 @@ The materials to generate this report are in the following [repository](https://
 
 I also acknowledge the use of ChatGPT (https://chat.openai.com/) and Grammarly to improve the text, grammar, and spelling.
 
-
 ---
 nocite: |
   @gghighlight
 ---
+
+
+# References
 
